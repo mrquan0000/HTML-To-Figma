@@ -263,6 +263,10 @@ def _make_text_entry(el: dict, text_content: str) -> dict:
 def _build_spec(raw_elements: list[dict], frame_width: int, frame_height: int, frame_name: str) -> dict:
     elements = []
 
+    # Calculate actual frame bounds from all elements to prevent overflow
+    min_x, min_y = float('inf'), float('inf')
+    max_x, max_y = float('-inf'), float('-inf')
+
     for el in raw_elements:
         tag = el["tag"]
         x, y, w, h = el["x"], el["y"], el["w"], el["h"]
@@ -298,7 +302,7 @@ def _build_spec(raw_elements: list[dict], frame_width: int, frame_height: int, f
         if has_bg or uniform_border:
             cls_parts = (el.get("className") or "").split()
             name_part = el.get("id") or (cls_parts[0] if cls_parts else "") or tag
-            elements.append({
+            rect_entry = {
                 "type": "rectangle",
                 "name": f"[{name_part}/Rect]",
                 "x": x, "y": y, "width": w, "height": h,
@@ -310,7 +314,13 @@ def _build_spec(raw_elements: list[dict], frame_width: int, frame_height: int, f
                 "opacity": opacity,
                 "shadow": shadow,
                 "backdrop_blur": round(blur_radius) if blur_radius else None,
-            })
+            }
+            elements.append(rect_entry)
+            # Track bounds
+            min_x = min(min_x, x)
+            min_y = min(min_y, y)
+            max_x = max(max_x, x + w)
+            max_y = max(max_y, y + h)
 
         # --- One-side border → thin separator rect (Fix #2) ---
         if not uniform_border:
@@ -324,10 +334,11 @@ def _build_spec(raw_elements: list[dict], frame_width: int, frame_height: int, f
                 if not sep_color_hex:
                     continue
                 sep_y = y if side == "top" else (y + h - max(1, round(bw)))
-                elements.append({
+                sep_h = max(1, round(bw))
+                border_entry = {
                     "type": "rectangle",
                     "name": f"[div/Line-{side.capitalize()}Border]",
-                    "x": x, "y": sep_y, "width": w, "height": max(1, round(bw)),
+                    "x": x, "y": sep_y, "width": w, "height": sep_h,
                     "fill_color": sep_color_hex,
                     "gradient": None,
                     "stroke_color": None,
@@ -336,16 +347,43 @@ def _build_spec(raw_elements: list[dict], frame_width: int, frame_height: int, f
                     "opacity": round(sep_alpha * 100),
                     "shadow": None,
                     "backdrop_blur": None,
-                })
+                }
+                elements.append(border_entry)
+                # Track bounds
+                min_x = min(min_x, x)
+                min_y = min(min_y, sep_y)
+                max_x = max(max_x, x + w)
+                max_y = max(max_y, sep_y + sep_h)
 
         # --- Text layer ---
         if text_content and (tag in _TEXT_TAGS or tag == "div"):
-            elements.append(_make_text_entry(el, text_content))
+            text_entry = _make_text_entry(el, text_content)
+            elements.append(text_entry)
+            # Track bounds
+            min_x = min(min_x, x)
+            min_y = min(min_y, y)
+            max_x = max(max_x, x + w)
+            max_y = max(max_y, y + h)
+
+    # Adjust frame to fit all elements
+    if min_x != float('inf') and max_x != float('-inf'):
+        # Calculate actual frame dimensions from element bounds
+        adjusted_frame_width = max(max_x - min_x, 1)
+        adjusted_frame_height = max(max_y - min_y, 1)
+
+        # Normalize all element coordinates relative to min_x, min_y
+        for elem in elements:
+            elem["x"] = round(elem["x"] - min_x)
+            elem["y"] = round(elem["y"] - min_y)
+    else:
+        # No elements, use original frame dimensions
+        adjusted_frame_width = frame_width
+        adjusted_frame_height = frame_height
 
     return {
         "frame_name": frame_name,
-        "frame_width": frame_width,
-        "frame_height": frame_height,
+        "frame_width": adjusted_frame_width,
+        "frame_height": adjusted_frame_height,
         "elements": elements,
     }
 
