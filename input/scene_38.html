@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importance of Hooks</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mont: ['Montserrat', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            warmAccent: '#E8973F',
+                            deepOrange: '#D36708',
+                            cardBg: '#200F00',
+                            brightYellow: '#F6C71E',
+                            glassGray: '#A9ADB1',
+                            deepBlack: '#150A01',
+                            warmBrown: '#542A06',
+                            alertRed: '#C21403',
+                            neonGold: '#CF9A34',
+                            positiveGreen: '#35CC23',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #150A01;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            overflow: hidden;
+        }
+
+        /* Subtle background pattern */
+        .bg-dots {
+            background-image: radial-gradient(circle, rgba(207, 154, 52, 0.04) 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+
+        /* Card glassmorphism */
+        .glass-card {
+            background: linear-gradient(
+                145deg,
+                rgba(32, 15, 0, 0.92) 0%,
+                rgba(32, 15, 0, 0.78) 50%,
+                rgba(32, 15, 0, 0.85) 100%
+            );
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1.5px solid rgba(207, 154, 52, 0.35);
+            border-radius: 28px;
+            box-shadow:
+                0 0 40px rgba(207, 154, 52, 0.12),
+                0 0 80px rgba(207, 154, 52, 0.06),
+                0 30px 60px rgba(0, 0, 0, 0.5),
+                0 10px 20px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06),
+                inset 0 0 80px rgba(207, 154, 52, 0.02);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Lightsweep effect */
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -120%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(
+                105deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.015) 40%,
+                rgba(255, 255, 255, 0.04) 50%,
+                rgba(255, 255, 255, 0.015) 60%,
+                transparent 100%
+            );
+            animation: lightsweep 5s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        @keyframes lightsweep {
+            0%, 100% { left: -120%; }
+            50% { left: 160%; }
+        }
+
+        /* Neon border glow pulse */
+        .neon-pulse {
+            animation: neonPulse 3.5s ease-in-out infinite;
+        }
+
+        @keyframes neonPulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 30px rgba(207, 154, 52, 0.1),
+                    0 0 60px rgba(207, 154, 52, 0.05),
+                    0 30px 60px rgba(0, 0, 0, 0.5),
+                    0 10px 20px rgba(0, 0, 0, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            }
+            50% {
+                box-shadow:
+                    0 0 50px rgba(207, 154, 52, 0.2),
+                    0 0 100px rgba(207, 154, 52, 0.08),
+                    0 30px 60px rgba(0, 0, 0, 0.5),
+                    0 10px 20px rgba(0, 0, 0, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            }
+        }
+
+        /* Title glow */
+        .title-glow {
+            text-shadow:
+                0 0 20px rgba(246, 199, 30, 0.45),
+                0 0 40px rgba(246, 199, 30, 0.18),
+                0 0 80px rgba(246, 199, 30, 0.08);
+        }
+
+        /* Keyword emphasis styles */
+        .kw-crucial {
+            color: #E8973F;
+            font-weight: 800;
+            text-shadow: 0 0 14px rgba(232, 151, 63, 0.4);
+            letter-spacing: 0.05em;
+        }
+
+        .kw-lose {
+            color: #C21403;
+            font-weight: 800;
+            text-shadow: 0 0 14px rgba(194, 20, 3, 0.35);
+            letter-spacing: 0.03em;
+        }
+
+        /* Bullet marker */
+        .bullet-mark {
+            position: relative;
+            padding-left: 1.75rem;
+        }
+
+        .bullet-mark::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            background: linear-gradient(135deg, #CF9A34, #E8973F);
+            border-radius: 2px;
+            transform: translateY(-50%) rotate(45deg);
+            box-shadow: 0 0 8px rgba(207, 154, 52, 0.4);
+        }
+
+        /* Icon container glow */
+        .icon-glow {
+            box-shadow:
+                0 0 20px rgba(207, 154, 52, 0.25),
+                0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Quote left border glow */
+        .quote-border {
+            border-left: 2px solid rgba(207, 154, 52, 0.25);
+            position: relative;
+        }
+
+        .quote-border::before {
+            content: '';
+            position: absolute;
+            left: -1px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, rgba(207, 154, 52, 0.5), rgba(207, 154, 52, 0.1));
+            filter: blur(3px);
+        }
+
+        /* Ambient background glow */
+        .ambient-glow {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(207, 154, 52, 0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* Divider gradient */
+        .divider-line {
+            height: 1px;
+            background: linear-gradient(to right, #CF9A34, rgba(207, 154, 52, 0.3), transparent);
+        }
+
+        /* Subtle inner card gradient overlay */
+        .inner-glow {
+            background: radial-gradient(
+                ellipse at 20% 20%,
+                rgba(207, 154, 52, 0.04) 0%,
+                transparent 60%
+            );
+        }
+
+        /* Badge pill style */
+        .badge-pill {
+            background: rgba(207, 154, 52, 0.08);
+            border: 1px solid rgba(207, 154, 52, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-dots">
+
+    <!-- Ambient background effects -->
+    <div class="fixed inset-0 pointer-events-none" style="z-index: 0;">
+        <div class="ambient-glow" style="top: -100px; left: -100px;"></div>
+        <div class="ambient-glow" style="bottom: -150px; right: -100px; width: 500px; height: 500px;"></div>
+    </div>
+
+    <!-- Main Card Container -->
+    <div class="w-full max-w-[600px] mx-auto relative" style="z-index: 1;">
+
+        <!-- Glass Card -->
+        <div class="glass-card neon-pulse relative">
+
+            <!-- Inner gradient overlay -->
+            <div class="absolute inset-0 inner-glow rounded-[28px] pointer-events-none" style="z-index: 1;"></div>
+
+            <!-- Card Content -->
+            <div class="relative p-10 md:p-12" style="z-index: 2;">
+
+                <!-- ====== HEADER: Icon + Title ====== -->
+                <div class="flex items-start gap-5 mb-9">
+
+                    <!-- Hook Icon Container -->
+                    <div class="flex-shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-neonGold via-brand-warmAccent to-brand-deepOrange icon-glow flex items-center justify-center mt-0.5">
+                        <svg class="w-9 h-9 text-brand-deepBlack" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16.5 2C18.985 2 21 4.015 21 6.5C21 8.985 18.985 11 16.5 11H15V13C15 16.866 11.866 20 8 20C4.134 20 1 16.866 1 13C1 9.134 4.134 6 8 6H9V4.5C9 3.119 10.119 2 11.5 2H16.5ZM8 8C5.239 8 3 10.239 3 13C3 15.761 5.239 18 8 18C10.761 18 13 15.761 13 13V6.5C13 5.672 12.328 5 11.5 5H10.5C10.224 5 10 5.224 10 5.5V13C10 14.105 9.105 15 8 15C6.895 15 6 14.105 6 13C6 11.895 6.895 11 8 11H9.5C9.776 11 10 10.776 10 10.5C10 10.224 9.776 10 9.5 10H8C6.343 10 5 11.343 5 13C5 14.657 6.343 16 8 16C9.657 16 11 14.657 11 13V6H11.5C12.328 6 13 6.672 13 7.5V9.171C14.839 8.423 16 6.605 16 4.5V3H16.5C17.881 3 19 3.119 19 3.5V6.5C19 7.881 17.881 9 16.5 9H15V6.5C15 4.015 16.5 2 16.5 2Z" fill="currentColor"/>
+                            <path d="M8 11C6.895 11 6 11.895 6 13C6 14.105 6.895 15 8 15C9.105 15 10 14.105 10 13C10 11.895 9.105 11 8 11Z" fill="currentColor"/>
+                        </svg>
+                    </div>
+
+                    <!-- Title -->
+                    <div class="pt-1">
+                        <h1 class="text-brand-brightYellow text-3xl md:text-[2.1rem] font-black uppercase tracking-[0.08em] title-glow leading-[1.15] font-mont">
+                            Importance<br>of Hooks
+                        </h1>
+                        <div class="flex items-center gap-2 mt-3">
+                            <div class="w-2 h-2 rounded-full bg-brand-neonGold shadow-[0_0_8px_rgba(207,154,52,0.5)]"></div>
+                            <span class="text-brand-glassGray text-xs font-semibold uppercase tracking-[0.2em]">Content Strategy</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ====== DIVIDER ====== -->
+                <div class="divider-line mb-9 rounded-full"></div>
+
+                <!-- ====== BULLET POINTS ====== -->
+                <div class="space-y-5 mb-9">
+
+                    <!-- Bullet 1 -->
+                    <div class="bullet-mark">
+                        <p class="text-white text-[1.05rem] md:text-lg font-semibold leading-relaxed font-mont">
+                            First 10–20 seconds are
+                            <span class="kw-crucial">CRUCIAL</span>
+                        </p>
+                    </div>
+
+                    <!-- Bullet 2 -->
+                    <div class="bullet-mark">
+                        <p class="text-white text-[1.05rem] md:text-lg font-semibold leading-relaxed font-mont">
+                            Slow intros
+                            <span class="kw-lose">LOSE VIEWERS</span>
+                        </p>
+                    </div>
+
+                </div>
+
+                <!-- ====== QUOTE / BODY TEXT ====== -->
+                <div class="quote-border pl-5 mb-8">
+                    <p class="text-brand-glassGray text-[0.85rem] md:text-[0.92rem] leading-[1.75] font-normal font-mont">
+                        "The hooks. Because getting that click is only half the battle. Now you actually need the viewers to stay, and the first ten to 20 seconds are so, so
+                        <span class="kw-crucial">crucial</span>. Most creators completely
+                        <span class="kw-lose">lose viewers</span>
+                        and instantly lower their results because their intros are way too slow. They start with long greetings, long explanations, and unnecessary talking."
+                    </p>
+                </div>
+
+                <!-- ====== BOTTOM ACCENT BAR ====== -->
+                <div class="flex items-center justify-between">
+
+                    <!-- Stopwatch Badge -->
+                    <div class="badge-pill rounded-xl px-4 py-2.5 flex items-center gap-3">
+                        <svg class="w-5 h-5 text-brand-neonGold flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="14" r="7"/>
+                            <polyline points="12 10 12 14 14.5 16"/>
+                            <line x1="8" y1="2" x2="16" y2="2"/>
+                            <line x1="12" y1="2" x2="12" y2="4"/>
+                            <line x1="18.5" y1="4.5" x2="17.5" y2="5.5"/>
+                            <line x1="5.5" y1="4.5" x2="6.5" y2="5.5"/>
+                        </svg>
+                        <span class="text-brand-neonGold text-xs font-bold uppercase tracking-[0.15em]">10–20 Second Window</span>
+                    </div>
+
+                    <!-- Decorative dots -->
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-1.5 h-1.5 rounded-full bg-brand-neonGold shadow-[0_0_6px_rgba(207,154,52,0.5)]"></div>
+                        <div class="w-1.5 h-1.5 rounded-full bg-brand-warmAccent shadow-[0_0_6px_rgba(232,151,63,0.4)]"></div>
+                        <div class="w-1.5 h-1.5 rounded-full bg-brand-deepOrange shadow-[0_0_6px_rgba(211,103,8,0.4)]"></div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

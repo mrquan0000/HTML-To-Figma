@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Small Change, Big Impact</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            orange: '#E8973F',
+                            darkOrange: '#D36708',
+                            darkBg: '#200F00',
+                            yellow: '#F6C71E',
+                            glassGray: '#A9ADB1',
+                            blackBg: '#150A01',
+                            wood: '#542A06',
+                            red: '#C21403',
+                            neonGold: '#CF9A34',
+                            green: '#35CC23',
+                        }
+                    },
+                    fontFamily: {
+                        montserrat: ['Montserrat', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #000000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Simulated speaker background */
+        .speaker-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #150A01 0%, #200F00 30%, #150A01 60%, #0a0500 100%);
+            z-index: 0;
+        }
+
+        .speaker-bg::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 400px;
+            background: radial-gradient(ellipse, rgba(232, 151, 63, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .speaker-bg::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(207, 154, 52, 0.12) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: pulseGlow 4s ease-in-out infinite;
+        }
+
+        /* Card container */
+        .card-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 600px;
+            padding: 0 20px;
+            animation: cardPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        /* Main card */
+        .glass-card {
+            background: linear-gradient(135deg, rgba(32, 15, 0, 0.95) 0%, rgba(21, 10, 1, 0.98) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1.5px solid rgba(207, 154, 52, 0.6);
+            border-radius: 24px;
+            padding: 40px 36px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 0 30px rgba(207, 154, 52, 0.25),
+                0 0 60px rgba(207, 154, 52, 0.1),
+                0 25px 50px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(207, 154, 52, 0.2);
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(135deg, 
+                rgba(207, 154, 52, 0.4) 0%, 
+                rgba(207, 154, 52, 0.05) 30%,
+                rgba(232, 151, 63, 0.1) 60%,
+                rgba(207, 154, 52, 0.3) 100%);
+            border-radius: 25px;
+            z-index: -1;
+            animation: borderGlow 3s ease-in-out infinite;
+        }
+
+        .glass-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(207, 154, 52, 0.06) 50%, 
+                transparent 100%);
+            animation: lightsweep 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        /* Neon glow effect on border */
+        .neon-border {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 24px;
+            box-shadow: 
+                inset 0 0 20px rgba(207, 154, 52, 0.08);
+            pointer-events: none;
+        }
+
+        /* Title styles */
+        .title-main {
+            font-size: 2rem;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+            line-height: 1.15;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .title-small {
+            color: #F6C71E;
+        }
+
+        .title-big-impact {
+            color: #E8973F;
+            text-shadow: 
+                0 0 20px rgba(232, 151, 63, 0.6),
+                0 0 40px rgba(232, 151, 63, 0.3),
+                0 0 60px rgba(232, 151, 63, 0.15);
+            animation: textGlow 3s ease-in-out infinite;
+        }
+
+        /* Subtitle */
+        .subtitle {
+            color: #FFFFFF;
+            font-size: 1.15rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .subtitle::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 0;
+            width: 60px;
+            height: 2.5px;
+            background: linear-gradient(90deg, #E8973F, #CF9A34, transparent);
+            border-radius: 2px;
+        }
+
+        /* Body text */
+        .body-text {
+            color: rgba(169, 173, 177, 0.9);
+            font-size: 1rem;
+            line-height: 1.7;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+        }
+
+        /* Icon containers */
+        .icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(207, 154, 52, 0.15) 0%, rgba(232, 151, 63, 0.08) 100%);
+            border: 1px solid rgba(207, 154, 52, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 0 15px rgba(207, 154, 52, 0.1);
+        }
+
+        .icon-box svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(207, 154, 52, 0.3), transparent);
+            margin: 20px 0;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, rgba(232, 151, 63, 0.15) 0%, rgba(207, 154, 52, 0.1) 100%);
+            border: 1px solid rgba(232, 151, 63, 0.25);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #E8973F;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        /* Animations */
+        @keyframes cardPop {
+            0% {
+                transform: scale(0.9);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.02);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes borderGlow {
+            0%, 100% {
+                opacity: 0.7;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes textGlow {
+            0%, 100% {
+                text-shadow: 
+                    0 0 20px rgba(232, 151, 63, 0.6),
+                    0 0 40px rgba(232, 151, 63, 0.3),
+                    0 0 60px rgba(232, 151, 63, 0.15);
+            }
+            50% {
+                text-shadow: 
+                    0 0 25px rgba(232, 151, 63, 0.8),
+                    0 0 50px rgba(232, 151, 63, 0.4),
+                    0 0 80px rgba(232, 151, 63, 0.2);
+            }
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.8;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.15);
+                opacity: 1;
+            }
+        }
+
+        @keyframes lightsweep {
+            0% {
+                left: -100%;
+            }
+            50% {
+                left: 100%;
+            }
+            100% {
+                left: 100%;
+            }
+        }
+
+        /* Decorative corner accents */
+        .corner-accent {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            pointer-events: none;
+        }
+
+        .corner-accent.top-left {
+            top: 16px;
+            left: 16px;
+            border-top: 2px solid rgba(207, 154, 52, 0.4);
+            border-left: 2px solid rgba(207, 154, 52, 0.4);
+            border-radius: 8px 0 0 0;
+        }
+
+        .corner-accent.bottom-right {
+            bottom: 16px;
+            right: 16px;
+            border-bottom: 2px solid rgba(207, 154, 52, 0.4);
+            border-right: 2px solid rgba(207, 154, 52, 0.4);
+            border-radius: 0 0 8px 0;
+        }
+
+        /* Highlight keyword in text */
+        .highlight-keyword {
+            color: #E8973F;
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(232, 151, 63, 0.3);
+        }
+
+        /* Floating particles */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(207, 154, 52, 0.4);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .particle-1 {
+            top: 10%;
+            left: 15%;
+            animation: float1 6s ease-in-out infinite;
+        }
+
+        .particle-2 {
+            top: 70%;
+            right: 20%;
+            animation: float2 8s ease-in-out infinite;
+            width: 3px;
+            height: 3px;
+        }
+
+        .particle-3 {
+            bottom: 15%;
+            left: 25%;
+            animation: float3 7s ease-in-out infinite;
+            width: 5px;
+            height: 5px;
+        }
+
+        @keyframes float1 {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            50% { transform: translateY(-20px) translateX(10px); }
+        }
+
+        @keyframes float2 {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            50% { transform: translateY(15px) translateX(-15px); }
+        }
+
+        @keyframes float3 {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            50% { transform: translateY(-25px) translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background -->
+    <div class="speaker-bg"></div>
+
+    <!-- Floating particles -->
+    <div class="particle particle-1"></div>
+    <div class="particle particle-2"></div>
+    <div class="particle particle-3"></div>
+
+    <!-- Main Card -->
+    <div class="card-container">
+        <div class="glass-card">
+            <div class="neon-border"></div>
+            <div class="corner-accent top-left"></div>
+            <div class="corner-accent bottom-right"></div>
+
+            <!-- Top badge -->
+            <div class="flex items-center gap-3 mb-5">
+                <div class="badge">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                    KEY INSIGHT
+                </div>
+            </div>
+
+            <!-- Title -->
+            <div class="mb-4">
+                <h1 class="title-main">
+                    <span class="title-small">SMALL CHANGE,</span><br>
+                    <span class="title-big-impact">BIG IMPACT</span>
+                </h1>
+            </div>
+
+            <!-- Subtitle -->
+            <div class="mb-5">
+                <p class="subtitle">Packaging is Key</p>
+            </div>
+
+            <!-- Divider -->
+            <div class="divider"></div>
+
+            <!-- Body content with icons -->
+            <div class="flex gap-4 items-start mb-5">
+                <div class="icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#CF9A34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 18h6"></path>
+                        <path d="M10 22h4"></path>
+                        <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <p class="body-text">
+                        Because one small packaging change can completely change the <span class="highlight-keyword">performance</span> of your video.
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex gap-4 items-start mb-6">
+                <div class="icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#35CC23" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                        <polyline points="16 7 22 7 22 13"></polyline>
+                    </svg>
+                </div>
+                <div>
+                    <p class="body-text">
+                        And one more thing —
+                    </p>
+                </div>
+            </div>
+
+            <!-- Bottom accent bar -->
+            <div class="flex items-center justify-between mt-2">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full" style="background: #E8973F; box-shadow: 0 0 8px rgba(232, 151, 63, 0.6);"></div>
+                    <span style="color: rgba(169, 173, 177, 0.6); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase;">PRO TIP</span>
+                </div>
+                <div style="color: rgba(207, 154, 52, 0.5); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em;">
+                    03 / 08
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unconventional Strategies</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mont: ['Montserrat', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Montserrat', sans-serif; }
+
+        /* Glassmorphism Card */
+        .glass-card {
+            background: rgba(32, 15, 0, 0.78);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1.5px solid rgba(207, 154, 52, 0.35);
+            box-shadow:
+                0 0 15px rgba(207, 154, 52, 0.18),
+                0 0 35px rgba(207, 154, 52, 0.08),
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Glass top reflection */
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 50%;
+            background: linear-gradient(180deg, rgba(207, 154, 52, 0.06) 0%, transparent 100%);
+            pointer-events: none;
+            border-radius: inherit;
+            z-index: 1;
+        }
+
+        /* Title glow */
+        .title-glow {
+            text-shadow:
+                0 0 10px rgba(246, 199, 30, 0.35),
+                0 0 25px rgba(246, 199, 30, 0.15),
+                0 0 50px rgba(246, 199, 30, 0.08);
+        }
+
+        /* Keyword emphasis glow */
+        .keyword-glow {
+            text-shadow: 0 0 8px rgba(232, 151, 63, 0.45);
+        }
+
+        /* Bullet dot glow */
+        .bullet-glow {
+            box-shadow: 0 0 8px rgba(207, 154, 52, 0.5), 0 0 2px rgba(207, 154, 52, 0.8);
+        }
+
+        /* Icon glow */
+        .icon-glow {
+            filter: drop-shadow(0 0 8px rgba(246, 199, 30, 0.5));
+        }
+
+        /* Accent gradient line */
+        .accent-gradient {
+            background: linear-gradient(90deg, #CF9A34, #D36708, transparent);
+        }
+
+        /* Background grid pattern */
+        .grid-pattern {
+            background-image:
+                linear-gradient(rgba(207, 154, 52, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(207, 154, 52, 0.035) 1px, transparent 1px);
+            background-size: 48px 48px;
+        }
+
+        /* Glow pulse on card border */
+        @keyframes glowPulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 15px rgba(207, 154, 52, 0.18),
+                    0 0 35px rgba(207, 154, 52, 0.08),
+                    0 8px 32px rgba(0, 0, 0, 0.4),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            }
+            50% {
+                box-shadow:
+                    0 0 22px rgba(207, 154, 52, 0.28),
+                    0 0 50px rgba(207, 154, 52, 0.12),
+                    0 8px 32px rgba(0, 0, 0, 0.4),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            }
+        }
+        .glow-pulse { animation: glowPulse 4s ease-in-out infinite; }
+
+        /* Subtle title text pulse */
+        @keyframes titlePulse {
+            0%, 100% {
+                text-shadow:
+                    0 0 10px rgba(246, 199, 30, 0.35),
+                    0 0 25px rgba(246, 199, 30, 0.15);
+            }
+            50% {
+                text-shadow:
+                    0 0 15px rgba(246, 199, 30, 0.5),
+                    0 0 35px rgba(246, 199, 30, 0.2);
+            }
+        }
+        .title-pulse { animation: titlePulse 3s ease-in-out infinite; }
+
+        /* Speaker background gradient */
+        .speaker-bg {
+            background: linear-gradient(135deg, #1a1008 0%, #0f0804 40%, #150A01 100%);
+        }
+    </style>
+</head>
+<body class="bg-[#080402] min-h-screen flex items-center justify-center p-3 sm:p-6 lg:p-8">
+
+    <!-- ===== Video Frame Container (Split Grid) ===== -->
+    <div class="w-full max-w-[960px] rounded-xl sm:rounded-2xl overflow-hidden relative"
+         style="aspect-ratio: 16/9; box-shadow: 0 0 80px rgba(0,0,0,0.6), 0 0 20px rgba(207,154,52,0.04);">
+
+        <div class="absolute inset-0 flex">
+
+            <!-- ========== LEFT HALF — Dark BG + Card ========== -->
+            <div class="w-[55%] h-full bg-[#150A01] relative flex items-center justify-center p-4 sm:p-6 lg:p-10 overflow-hidden">
+
+                <!-- Ambient glow orbs -->
+                <div class="absolute top-[18%] left-[28%] w-72 h-72 rounded-full bg-[#CF9A34]/[0.04] blur-[100px] pointer-events-none"></div>
+                <div class="absolute bottom-[22%] left-[18%] w-56 h-56 rounded-full bg-[#E8973F]/[0.035] blur-[80px] pointer-events-none"></div>
+
+                <!-- Subtle grid texture -->
+                <div class="absolute inset-0 grid-pattern pointer-events-none"></div>
+
+                <!-- ===== Glassmorphism Card ===== -->
+                <div class="glass-card glow-pulse rounded-xl sm:rounded-2xl p-5 sm:p-6 lg:p-8 relative z-10 w-full max-w-[420px]">
+
+                    <!-- Corner accents -->
+                    <div class="absolute top-0 left-0 w-10 h-10 pointer-events-none" style="z-index:2;">
+                        <div class="absolute top-0 left-0 w-[1px] h-6 bg-gradient-to-b from-[#CF9A34]/40 to-transparent"></div>
+                        <div class="absolute top-0 left-0 h-[1px] w-6 bg-gradient-to-r from-[#CF9A34]/40 to-transparent"></div>
+                    </div>
+                    <div class="absolute bottom-0 right-0 w-10 h-10 pointer-events-none" style="z-index:2;">
+                        <div class="absolute bottom-0 right-0 w-[1px] h-6 bg-gradient-to-t from-[#CF9A34]/40 to-transparent"></div>
+                        <div class="absolute bottom-0 right-0 h-[1px] w-6 bg-gradient-to-l from-[#CF9A34]/40 to-transparent"></div>
+                    </div>
+
+                    <!-- Left accent bar -->
+                    <div class="absolute left-0 top-[12%] bottom-[12%] w-[2px] rounded-full pointer-events-none"
+                         style="background: linear-gradient(to bottom, transparent, #CF9A34, transparent); opacity: 0.35; z-index:2;"></div>
+
+                    <!-- Content -->
+                    <div class="relative" style="z-index: 3;">
+
+                        <!-- Header: Lightbulb Icon + Accent Line -->
+                        <div class="flex items-center gap-3 mb-4 sm:mb-5">
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-[#F6C71E]/[0.08] border border-[#CF9A34]/25 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-lightbulb text-[#F6C71E] text-base sm:text-lg icon-glow"></i>
+                            </div>
+                            <div class="h-[1.5px] flex-1 accent-gradient rounded-full"></div>
+                        </div>
+
+                        <!-- Title -->
+                        <h1 class="text-[#F6C71E] font-black text-base sm:text-lg lg:text-xl tracking-[0.1em] sm:tracking-[0.12em] uppercase leading-tight title-glow title-pulse mb-3 sm:mb-4">
+                            Unconventional<br>Strategies
+                        </h1>
+
+                        <!-- Accent divider -->
+                        <div class="w-10 sm:w-12 h-[2px] bg-gradient-to-r from-[#CF9A34] to-[#D36708] rounded-full mb-4 sm:mb-5"></div>
+
+                        <!-- Quote Text -->
+                        <p class="text-white/[0.82] text-[11px] sm:text-[13px] lg:text-sm leading-[1.75] sm:leading-[1.8] mb-5 sm:mb-6">
+                            <span class="text-white/30 text-base leading-none font-serif">&ldquo;</span>And here&rsquo;s the truth. I didn&rsquo;t follow a whole bunch of conventional advice that most small creators are told to follow, because along the way, I actually discovered the few
+                            <span class="text-[#E8973F] font-semibold keyword-glow">strategies</span>
+                            that actually made my videos start getting pushed on YouTube way faster than normal.<span class="text-white/30 text-base leading-none font-serif">&rdquo;</span>
+                        </p>
+
+                        <!-- Bullet Points -->
+                        <div class="space-y-2.5 sm:space-y-3 mb-5 sm:mb-6 pl-1">
+                            <div class="flex items-center gap-2.5 sm:gap-3">
+                                <div class="w-[6px] h-[6px] sm:w-[7px] sm:h-[7px] rounded-full bg-[#CF9A34] bullet-glow flex-shrink-0"></div>
+                                <span class="text-white/[0.88] text-[11px] sm:text-[13px] lg:text-sm font-medium">Ignored common advice</span>
+                            </div>
+                            <div class="flex items-center gap-2.5 sm:gap-3">
+                                <div class="w-[6px] h-[6px] sm:w-[7px] sm:h-[7px] rounded-full bg-[#CF9A34] bullet-glow flex-shrink-0"></div>
+                                <span class="text-white/[0.88] text-[11px] sm:text-[13px] lg:text-sm font-medium">Discovered <span class="text-[#E8973F] font-semibold keyword-glow">key strategies</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Footer: Line + Gears Icon -->
+                        <div class="flex items-center gap-3">
+                            <div class="h-[1px] flex-1 bg-gradient-to-r from-transparent via-[#CF9A34]/20 to-[#CF9A34]/10 rounded-full"></div>
+                            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-[#542A06]/25 border border-[#CF9A34]/10 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-gears text-[#CF9A34]/40 text-[10px] sm:text-xs"></i>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <!-- End Glassmorphism Card -->
+
+            </div>
+            <!-- End Left Half -->
+
+
+            <!-- ========== RIGHT HALF — Speaker / A-Roll Area ========== -->
+            <div class="w-[45%] h-full speaker-bg relative flex items-end justify-center overflow-hidden">
+
+                <!-- Vertical separator glow -->
+                <div class="absolute top-0 left-0 w-[1px] h-full bg-gradient-to-b from-[#CF9A34]/15 via-[#CF9A34]/8 to-transparent"></div>
+
+                <!-- Speaker silhouette -->
+                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[75%] h-full flex items-end justify-center">
+                    <!-- Head -->
+                    <div class="absolute top-[12%] left-1/2 -translate-x-1/2 w-[28%] aspect-square rounded-full"
+                         style="background: linear-gradient(to bottom, #1e1208, #150a01); border: 1px solid rgba(207,154,52,0.04);"></div>
+                    <!-- Body / Shoulders -->
+                    <div class="w-[85%] h-[72%] rounded-t-[45%]"
+                         style="background: linear-gradient(to top, #120a04, rgba(26,16,8,0.8), rgba(32,15,0,0.3)); border-top: 1px solid rgba(207,154,52,0.04);"></div>
+                </div>
+
+                <!-- Recording indicator -->
+                <div class="absolute top-4 sm:top-5 right-4 sm:right-5 z-10">
+                    <div class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/[0.04] border border-white/[0.06] backdrop-blur-sm">
+                        <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#35CC23]" style="box-shadow: 0 0 6px rgba(53,204,35,0.6);"></div>
+                        <span class="text-[#A9ADB1]/35 text-[8px] sm:text-[10px] tracking-[0.15em] uppercase font-semibold">A-Roll</span>
+                    </div>
+                </div>
+
+                <!-- Spotlight effect -->
+                <div class="absolute top-[5%] left-[35%] w-[65%] h-[40%] rounded-full bg-[#CF9A34]/[0.02] blur-[60px] pointer-events-none"></div>
+
+                <!-- Bottom subtle gradient bar -->
+                <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#CF9A34]/8 to-[#CF9A34]/15"></div>
+
+            </div>
+            <!-- End Right Half -->
+
+        </div>
+    </div>
+    <!-- End Video Frame Container -->
+
+</body>
+</html>

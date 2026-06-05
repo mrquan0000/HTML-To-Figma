@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Don't Quit Early - Premium Card</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-dark': '#150A01',
+                        'brand-card': '#200F00',
+                        'brand-gold': '#F6C71E',
+                        'brand-orange': '#E8973F',
+                        'brand-neon': '#CF9A34',
+                        'brand-wood': '#542A06',
+                        'brand-red': '#C21403',
+                        'brand-gray': '#A9ADB1',
+                        'brand-deep-orange': '#D36708',
+                        'brand-green': '#35CC23',
+                    },
+                    fontFamily: {
+                        'montserrat': ['Montserrat', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #150A01;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .glass-card {
+            background: rgba(32, 15, 0, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(207, 154, 52, 0.4);
+            box-shadow: 
+                0 0 30px rgba(207, 154, 52, 0.15),
+                0 0 60px rgba(207, 154, 52, 0.08),
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(207, 154, 52, 0.1);
+            animation: cardSlideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .neon-border {
+            position: relative;
+        }
+
+        .neon-border::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: inherit;
+            background: linear-gradient(135deg, rgba(207, 154, 52, 0.6), rgba(232, 151, 63, 0.3), rgba(207, 154, 52, 0.6));
+            z-index: -1;
+            filter: blur(8px);
+            opacity: 0.7;
+        }
+
+        .neon-border::after {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: inherit;
+            background: linear-gradient(135deg, rgba(207, 154, 52, 0.8), rgba(232, 151, 63, 0.4), rgba(207, 154, 52, 0.8));
+            z-index: -1;
+            filter: blur(2px);
+            opacity: 0.5;
+        }
+
+        .title-glow {
+            text-shadow: 
+                0 0 20px rgba(246, 199, 30, ..,
+                                               0px               ,
+            0 0                                                            {
+                                                                                     {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     .title-glow {
+            text-shadow: 
+                0 0 20px rgba(246, 199, 30, 0.4),
+                0 0 40px rgba(246, 199, 30, 0.2);
+                0 0 80px rgba(246, 199, 30, 0.1);
+        }
+
+        .bullet-point {
+            opacity: ;
+1;
+        }
+
+        .bullet-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #CF9A34, #E8973F);
+            box-shadow: 0 0 10px rgba(207, 154, 52, 0.5);
+            flex-shrink: 0;
+        }
+
+        .accent-line {
+            background: linear-gradient(90deg, #E8973F, #D36708);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+        }
+
+        .lightsweep {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lightsweep::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(207, 154, 52, 0.08), transparent);
+            animation: lightsweep 3s ease-in-out infinite;
+        }
+
+        @keyframes cardSlideIn {
+            0% {
+                transform: translateX(-60px);
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes lightsweep {
+            0% {
+                left: -100%;
+            }
+            50% {
+                left: 100%;
+            }
+            100% {
+                left: 100%;
+            }
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 
+                    0 0 30px rgba(207, 154, 52, 0.15),
+                    0 0 60px rgba(207, 154, 52, 0.08),
+                    0 8px 32px rgba(0, 0, 0, 0.4);
+            }
+            50% {
+                box-shadow: 
+                    0 0 40px rgba(207, 154, 52, 0.25),
+                    0 0 80px rgba(207, 154, 52, 0.12),
+                    0 8px 32px rgba(0, 0, 0, 0.4);
+            }
+        }
+
+        .glass-card {
+            animation: cardSlideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+                       pulseGlow 4s ease-in-out infinite 1s;
+        }
+
+        .icon-persistence {
+            width: 48px;
+            height: 48px;
+            position: relative;
+        }
+
+        .icon-persistence svg {
+            filter: drop-shadow(0 0 8px rgba(207, 154, 52, 0.4));
+        }
+
+        .speaker-silhouette {
+            background: linear-gradient(180deg, rgba(84, 42, 6, 0.3) 0%, rgba(21, 10, 1, 0.8) 100%);
+        }
+
+        .divider-line {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(207, 14 52, 0.3), transparent);
+        }
+    </style>
+</head>
+<body>
+    <div class="w-full max-w-[600px] mx-auto relative">
+        <!-- Split Grid Container -->
+        <div class="flex min-h-[500px] rounded-2xl overflow-hidden">
+            
+            <!-- Left Half - Card Area -->
+            <div class="w-1/2 bg-brand-dark relative flex items-center justify-center p-6">
+                
+                <!-- Background Ambient Glow -->
+                <div class="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full opacity-20" 
+                     style="background: radial-gradient(circle, rgba(207, 154, 52, 0.3), transparent 70%);"></div>
+                
+                <!-- Main Card -->
+                <div class="glass-card neon-border lightsweep rounded-2xl p-8 w-full max-w-xs relative z-10">
+                    
+                    <!-- Icon -->
+                    <div class="icon-persistence mb-5">
+                        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" 
+                                  fill="url(#iconGrad)" stroke="#CF9A34" stroke-width="1.5"/>
+                            <defs>
+                                <linearGradient id="iconGrad" x1="8" y1="4" x2="40" y2="36">
+                                    <stop offset="0%" stop-color="#F6C71E"/>
+                                    <stop offset="100%" stop-color="#E8973F"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+
+                    <!-- Title -->
+                    <h1 class="title-glow text-2xl font-black tracking-wider text-brand-gold mb-6 leading-tight">
+                        DON'T QUIT<br>EARLY
+                    </h1>
+
+                    <!-- Divider -->
+                    <div class="divider-line mb-5"></div>
+
+                    <!-- Bullet Points -->
+                    <div class="space-y-4 mb-6">
+                        <div class="flex items-start gap-3">
+                            <div class="bullet-icon mt-2"></div>
+                            <p class="text-white text-sm font-medium leading-relaxed">
+                                YouTube is not impossible
+                            </p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="bullet-icon mt-2"></div>
+                            <p class="text-white text-sm font-medium leading-relaxed">
+                                Successful creators get stuck too
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Divider -->
+                    <div class="divider-line mb-5"></div>
+
+                    <!-- Accent Line -->
+                    <p class="accent-line text-base font-bold tracking-wide">
+                        Stay long enough to improve
+                    </p>
+
+                    <!-- Decorative Corner -->
+                    <div class="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-brand-neon opacity-30 rounded-tr-lg"></div>
+                    <div class="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-brand-neon opacity-30 rounded-bl-lg"></div>
+                </div>
+            </div>
+
+            <!-- Right Half - Speaker Area -->
+            <div class="w-1/2 relative speaker-silhouette flex items-end justify-center">
+                
+                <!-- Gradient Overlay for depth -->
+                <div class="absolute inset-0" 
+                     style="background: linear-gradient(135deg, rgba(21, 10, 1, 0.6) 0%, rgba(84, 42, 6, 0.2) 50%, rgba(21, 10, 1, 0.4) 100%);"></div>
+                
+                <!-- Speaker Placeholder -->
+                <div class="relative z-10 flex flex-col items-center pb-8">
+                    <!-- Speaker Silhouette Shape -->
+                    <div class="w-32 h-48 rounded-t-full mb-4 relative"
+                         style="background: linear-gradient(180deg, rgba(84, 42, 6, 0.6) 0%, rgba(32, 15, 0, 0.8) 100%);
+                                box-shadow: 0 0 40px rgba(207, 154, 52, 0.1);">
+                        <!-- Head placeholder -->
+                        <div class="absolute -top-8 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full"
+                             style="background: linear-gradient(180deg, rgba(84, 42, 6, 0.7) 0%, rgba(32, 15, 0, 0.9) 100%);
+                                    box-shadow: 0 0 20px rgba(207, 154, 52, 0.08);"></div>
+                    </div>
+                    
+                    <!-- Speaker Label -->
+                    <div class="flex items-center gap-2 px-4 py-2 rounded-full"
+                         style="background: rgba(32, 15, 0, 0.6);
+                                border: 1px solid rgba(207, 154, 52, 0.2);">
+                        <div class="w-2 h-2 rounded-full bg-brand-green animate-pulse"></div>
+                        <span class="text-brand-gray text-xs font-medium tracking-wider uppercase">Speaker</span>
+                    </div>
+                </div>
+
+                <!-- Ambient light from card -->
+                <div class="absolute top-1/2 left-0 -translate-y-1/2 w-24 h-48 opacity-20"
+                     style="background: radial-gradient(ellipse at left, rgba(207, 154, 52, 0.3), transparent);"></div>
+            </div>
+        </div>
+
+        <!-- Bottom Caption Bar -->
+        <div class="mt-4 flex items-center justify-center gap-3 px-6 py-3 rounded-xl mx-auto max-w-xs"
+             style="background: rgba(32, 15, 0, 0.5);
+                    border: 1px solid rgba(207, 154, 52, 0.15);">
+            <svg class="w-4 h-4 text-brand-neon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+            </svg>
+            <span class="text-brand-gray text-xs font-medium tracking-wide">PERSISTENCE PAYS OFF</span>
+            <svg class="w-4 h-4 text-brand-neon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+            </svg>
+        </div>
+    </div>
+</body>
+</html>

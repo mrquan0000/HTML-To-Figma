@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consistent Audience Card</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'bg-dark': '#150A01',
+                        'card-bg': '#200F00',
+                        'neon-gold': '#CF9A34',
+                        'title-yellow': '#F6C71E',
+                        'accent-orange': '#E8973F',
+                        'dark-wood': '#542A06',
+                        'deep-orange': '#D36708',
+                        'glass-gray': '#A9ADB1',
+                        'alert-red': '#C21403',
+                        'green-pos': '#35CC23'
+                    },
+                    fontFamily: {
+                        'montserrat': ['Montserrat', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        /* Neon Glow Pulse */
+        @keyframes neonPulse {
+            0%, 100% {
+                box-shadow: 
+                    0 0 15px rgba(207, 154, 52, 0.4),
+                    0 0 30px rgba(207, 154, 52, 0.2),
+                    0 0 60px rgba(207, 154, 52, 0.1),
+                    inset 0 0 15px rgba(207, 154, 52, 0.05);
+            }
+            50% {
+                box-shadow: 
+                    0 0 20px rgba(207, 154, 52, 0.6),
+                    0 0 40px rgba(207, 154, 52, 0.3),
+                    0 0 80px rgba(207, 154, 52, 0.15),
+                    inset 0 0 20px rgba(207, 154, 52, 0.08);
+            }
+        }
+
+        /* Lightsweep Effect */
+        @keyframes lightsweep {
+            0% {
+                background-position: -200% center;
+            }
+            100% {
+                background-position: 200% center;
+            }
+        }
+
+        /* Title Glow */
+        @keyframes titleGlow {
+            0%, 100% {
+                text-shadow: 
+                    0 0 10px rgba(246, 199, 30, 0.5),
+                    0 0 20px rgba(246, 199, 30, 0.3),
+                    0 0 40px rgba(246, 199, 30, 0.15);
+            }
+            50% {
+                text-shadow: 
+                    0 0 15px rgba(246, 199, 30, 0.7),
+                    0 0 30px rgba(246, 199, 30, 0.4),
+                    0 0 60px rgba(246, 199, 30, 0.2);
+            }
+        }
+
+        /* Bullet Appear */
+        @keyframes bulletSlide {
+            0% {
+                transform: translateX(-20px);
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Icon Float */
+        @keyframes iconFloat {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-6px);
+            }
+        }
+
+        /* Growth Arrow Pulse */
+        @keyframes arrowPulse {
+            0%, 100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 8px rgba(53, 204, 35, 0.4));
+            }
+            50% {
+                transform: scale(1.08);
+                filter: drop-shadow(0 0 14px rgba(53, 204, 35, 0.7));
+            }
+        }
+
+        /* Accent Line Shimmer */
+        @keyframes shimmer {
+            0% {
+                background-position: -100% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        .card-main {
+            animation: neonPulse 3s ease-in-out infinite;
+            border: 1.5px solid rgba(207, 154, 52, 0.6);
+        }
+
+        .title-text {
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        .lightsweep-bar {
+            background: linear-gradient(
+                90deg, 
+                transparent 0%, 
+                rgba(207, 154, 52, 0.15) 25%, 
+                rgba(246, 199, 30, 0.25) 50%, 
+                rgba(207, 154, 52, 0.15) 75%, 
+                transparent 100%
+            );
+            background-size: 200% 100%;
+            animation: lightsweep 4s linear infinite;
+        }
+
+        .bullet-item-1 {
+            animation: bulletSlide 0.6s ease-out 0.3s both;
+        }
+        .bullet-item-2 {
+            animation: bulletSlide 0.6s ease-out 0.5s both;
+        }
+        .bullet-item-3 {
+            animation: bulletSlide 0.6s ease-out 0.7s both;
+        }
+
+        .icon-float {
+            animation: iconFloat 3s ease-in-out infinite;
+        }
+
+        .icon-float-delay {
+            animation: iconFloat 3s ease-in-out infinite 1.5s;
+        }
+
+        .growth-arrow {
+            animation: arrowPulse 2.5s ease-in-out infinite;
+        }
+
+        .shimmer-line {
+            background: linear-gradient(
+                90deg,
+                #E8973F 0%,
+                #F6C71E 40%,
+                #E8973F 80%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 3s linear infinite;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Glassmorphism card inner glow */
+        .glass-inner {
+            background: linear-gradient(
+                135deg,
+                rgba(207, 154, 52, 0.06) 0%,
+                rgba(32, 15, 0, 0.95) 30%,
+                rgba(32, 15, 0, 0.9) 70%,
+                rgba(207, 154, 52, 0.04) 100%
+            );
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        /* Decorative corner accents */
+        .corner-accent {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-color: #CF9A34;
+        }
+        .corner-tl {
+            top: -1px;
+            left: -1px;
+            border-top: 2px solid;
+            border-left: 2px solid;
+            border-top-left-radius: 16px;
+        }
+        .corner-tr {
+            top: -1px;
+            right: -1px;
+            border-top: 2px solid;
+            border-right: 2px solid;
+            border-top-right-radius: 16px;
+        }
+        .corner-bl {
+            bottom: -1px;
+            left: -1px;
+            border-bottom: 2px solid;
+            border-left: 2px solid;
+            border-bottom-left-radius: 16px;
+        }
+        .corner-br {
+            bottom: -1px;
+            right: -1px;
+            border-bottom: 2px solid;
+            border-right: 2px solid;
+            border-bottom-right-radius: 16px;
+        }
+    </style>
+</head>
+<body class="bg-bg-dark min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main Container - Max Width 600px -->
+    <div class="w-full max-w-[600px] mx-auto">
+        
+        <!-- Card with Glassmorphism & Neon Glow -->
+        <div class="card-main glass-inner rounded-2xl p-8 sm:p-10 relative overflow-hidden">
+            
+            <!-- Corner Accents -->
+            <div class="corner-accent corner-tl"></div>
+            <div class="corner-accent corner-tr"></div>
+            <div class="corner-accent corner-bl"></div>
+            <div class="corner-accent corner-br"></div>
+
+            <!-- Lightsweep Bar (top) -->
+            <div class="lightsweep-bar absolute top-0 left-0 right-0 h-[1px]"></div>
+            
+            <!-- Lightsweep Bar (bottom) -->
+            <div class="lightsweep-bar absolute bottom-0 left-0 right-0 h-[1px]"></div>
+
+            <!-- Decorative Background Orb -->
+            <div class="absolute -top-20 -right-20 w-60 h-60 rounded-full opacity-[0.07]"
+                 style="background: radial-gradient(circle, #CF9A34 0%, transparent 70%);"></div>
+            <div class="absolute -bottom-16 -left-16 w-48 h-48 rounded-full opacity-[0.05]"
+                 style="background: radial-gradient(circle, #F6C71E 0%, transparent 70%);"></div>
+
+            <!-- Icon Section -->
+            <div class="flex items-center gap-4 mb-6">
+                <!-- Audience Icon -->
+                <div class="icon-float">
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Group of people icon -->
+                        <circle cx="24" cy="14" r="6" stroke="#CF9A34" stroke-width="2" fill="rgba(207,154,52,0.1)"/>
+                        <path d="M12 38c0-7 5.4-12 12-12s12 5 12 12" stroke="#CF9A34" stroke-width="2" fill="rgba(207,154,52,0.05)" stroke-linecap="round"/>
+                        <circle cx="38" cy="18" r="4.5" stroke="#E8973F" stroke-width="1.5" fill="rgba(232,151,63,0.1)"/>
+                        <path d="M30 36c0-5 3.6-9 8-9" stroke="#E8973F" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                        <circle cx="10" cy="18" r="4.5" stroke="#E8973F" stroke-width="1.5" fill="rgba(232,151,63,0.1)"/>
+                        <path d="M18 36c0-5-3.6-9-8-9" stroke="#E8973F" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                    </svg>
+                </div>
+
+                <!-- Divider Line -->
+                <div class="h-10 w-[1px] bg-gradient-to-b from-transparent via-neon-gold to-transparent opacity-40"></div>
+
+                <!-- Compound Growth Icon -->
+                <div class="icon-float-delay">
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Growth chart icon -->
+                        <path d="M8 40 L18 28 L28 32 L40 10" stroke="url(#growthGrad)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M36 10 L40 10 L40 14" stroke="#35CC23" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="18" cy="28" r="3" fill="#35CC23" opacity="0.8"/>
+                        <circle cx="28" cy="32" r="3" fill="#F6C71E" opacity="0.8"/>
+                        <circle cx="40" cy="10" r="3" fill="#35CC23" opacity="0.8"/>
+                        <defs>
+                            <linearGradient id="growthGrad" x1="8" y1="40" x2="40" y2="10">
+                                <stop offset="0%" stop-color="#E8973F"/>
+                                <stop offset="100%" stop-color="#35CC23"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Title -->
+            <h1 class="title-text text-title-yellow font-montserrat font-black text-2xl sm:text-3xl tracking-[0.12em] uppercase mb-8 leading-tight">
+                CONSISTENT<br>AUDIENCE
+            </h1>
+
+            <!-- Accent Line -->
+            <div class="h-[2px] w-16 rounded-full bg-gradient-to-r from-neon-gold to-accent-orange mb-7"></div>
+
+            <!-- Bullet Points -->
+            <div class="space-y-4 mb-8">
+                <!-- Bullet 1: More Views -->
+                <div class="bullet-item-1 flex items-center gap-3">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+                         style="background: rgba(207,154,52,0.12); border: 1px solid rgba(207,154,52,0.25);">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M7 1L9 5H13L10 8L11 12L7 10L3 12L4 8L1 5H5L7 1Z" fill="#F6C71E"/>
+                        </svg>
+                    </div>
+                    <span class="text-white font-montserrat font-semibold text-lg sm:text-xl tracking-wide">
+                        More Views
+                    </span>
+                </div>
+
+                <!-- Bullet 2: Better Content -->
+                <div class="bullet-item-2 flex items-center gap-3">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+                         style="background: rgba(207,154,52,0.12); border: 1px solid rgba(207,154,52,0.25);">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M7 1L9 5H13L10 8L11 12L7 10L3 12L4 8L1 5H5L7 1Z" fill="#F6C71E"/>
+                        </svg>
+                    </div>
+                    <span class="text-white font-montserrat font-semibold text-lg sm:text-xl tracking-wide">
+                        Better Content
+                    </span>
+                </div>
+
+                <!-- Bullet 3: Faster Growth -->
+                <div class="bullet-item-3 flex items-center gap-3">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+                         style="background: rgba(207,154,52,0.12); border: 1px solid rgba(207,154,52,0.25);">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M7 1L9 5H13L10 8L11 12L7 10L3 12L4 8L1 5H5L7 1Z" fill="#F6C71E"/>
+                        </svg>
+                    </div>
+                    <span class="text-white font-montserrat font-semibold text-lg sm:text-xl tracking-wide">
+                        Faster Growth
+                    </span>
+                </div>
+            </div>
+
+            <!-- Decorative Separator -->
+            <div class="flex items-center gap-3 mb-7">
+                <div class="h-[1px] flex-1 bg-gradient-to-r from-transparent to-neon-gold opacity-30"></div>
+                <div class="growth-arrow">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M10 16V4M10 4L5 9M10 4L15 9" stroke="#35CC23" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="h-[1px] flex-1 bg-gradient-to-l from-transparent to-neon-gold opacity-30"></div>
+            </div>
+
+            <!-- Subtitle Line -->
+            <p class="shimmer-line font-montserrat font-bold text-base sm:text-lg tracking-wide leading-relaxed">
+                YouTube understood &amp; compounded growth
+            </p>
+
+            <!-- Bottom Glow Accent -->
+            <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-16 opacity-[0.12] pointer-events-none"
+                 style="background: radial-gradient(ellipse, #CF9A34 0%, transparent 70%);"></div>
+        </div>
+    </div>
+
+</body>
+</html>

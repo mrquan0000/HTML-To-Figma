@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Low Performance Card</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            warmAccent: '#E8973F',
+                            deepOrange: '#D36708',
+                            darkGlow: '#200F00',
+                            brightYellow: '#F6C71E',
+                            glassGray: '#A9ADB1',
+                            bgBlack: '#150A01',
+                            warmWood: '#542A06',
+                            redAccent: '#C21403',
+                            neonGold: '#CF9A34',
+                            greenPositive: '#35CC23',
+                        }
+                    },
+                    fontFamily: {
+                        montserrat: ['Montserrat', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #150A01;
+        }
+
+        /* Glassmorphism Card */
+        .glass-card {
+            background: rgba(32, 15, 0, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1.5px solid rgba(207, 154, 52, 0.5);
+            box-shadow:
+                0 0 20px rgba(207, 154, 52, 0.3),
+                0 0 60px rgba(207, 154, 52, 0.12),
+                inset 0 1px 0 rgba(207, 154, 52, 0.15),
+                0 25px 50px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: inherit;
+            background: linear-gradient(135deg, rgba(207, 154, 52, 0.4), transparent 40%, transparent 60%, rgba(207, 154, 52, 0.2));
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Lightsweep effect */
+        .glass-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(207, 154, 52, 0.06),
+                rgba(246, 199, 30, 0.04),
+                transparent
+            );
+            animation: lightsweep 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes lightsweep {
+            0%, 100% { left: -100%; }
+            50% { left: 140%; }
+        }
+
+        /* Title glow */
+        .title-glow {
+            text-shadow:
+                0 0 20px rgba(246, 199, 30, 0.5),
+                0 0 40px rgba(246, 199, 30, 0.25),
+                0 0 80px rgba(232, 151, 63, 0.15);
+        }
+
+        /* Neon glow pulse on border */
+        .neon-border-pulse {
+            animation: neonPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes neonPulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 15px rgba(207, 154, 52, 0.25),
+                    0 0 45px rgba(207, 154, 52, 0.1),
+                    inset 0 1px 0 rgba(207, 154, 52, 0.12);
+            }
+            50% {
+                box-shadow:
+                    0 0 25px rgba(207, 154, 52, 0.4),
+                    0 0 70px rgba(207, 154, 52, 0.18),
+                    inset 0 1px 0 rgba(207, 154, 52, 0.2);
+            }
+        }
+
+        /* Bullet icon glow */
+        .bullet-glow {
+            filter: drop-shadow(0 0 6px rgba(207, 154, 52, 0.5));
+        }
+
+        /* Warning icon glow */
+        .warning-glow {
+            filter: drop-shadow(0 0 10px rgba(246, 199, 30, 0.6));
+        }
+
+        /* Speaker silhouette area */
+        .speaker-area {
+            background: linear-gradient(180deg, rgba(32, 15, 0, 0.3) 0%, rgba(21, 10, 1, 0.8) 100%);
+        }
+
+        /* Slide-in animation */
+        .slide-in-left {
+            animation: slideInLeft 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                transform: translateX(-60px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Stagger children */
+        .stagger-1 { animation-delay: 0.15s; }
+        .stagger-2 { animation-delay: 0.3s; }
+        .stagger-3 { animation-delay: 0.45s; }
+        .stagger-4 { animation-delay: 0.6s; }
+        .stagger-5 { animation-delay: 0.75s; }
+
+        /* Accent underline */
+        .accent-line {
+            background: linear-gradient(90deg, #CF9A34, #E8973F, transparent);
+            height: 2px;
+            border-radius: 2px;
+        }
+
+        /* Quote highlight */
+        .quote-text {
+            border-left: 3px solid;
+            border-image: linear-gradient(to bottom, #CF9A34, #E8973F) 1;
+        }
+
+        /* Decorative corner accents */
+        .corner-accent {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: rgba(207, 154, 52, 0.4);
+        }
+
+        .corner-tl {
+            top: 8px; left: 8px;
+            border-top: 2px solid;
+            border-left: 2px solid;
+            border-color: inherit;
+        }
+
+        .corner-tr {
+            top: 8px; right: 8px;
+            border-top: 2px solid;
+            border-right: 2px solid;
+            border-color: inherit;
+        }
+
+        .corner-bl {
+            bottom: 8px; left: 8px;
+            border-bottom: 2px solid;
+            border-left: 2px solid;
+            border-color: inherit;
+        }
+
+        .corner-br {
+            bottom: 8px; right: 8px;
+            border-bottom: 2px solid;
+            border-right: 2px solid;
+            border-color: inherit;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4" style="background: #150A01;">
+
+    <!-- Split Grid Container -->
+    <div class="w-full max-w-[600px] flex rounded-2xl overflow-hidden relative"
+         style="min-height: 480px; background: #150A01; box-shadow: 0 0 80px rgba(0,0,0,0.6);">
+
+        <!-- LEFT HALF: Card Content -->
+        <div class="w-[60%] relative flex flex-col justify-center p-6 md:p-8"
+             style="background: linear-gradient(135deg, #150A01 0%, #1a0e03 50%, #150A01 100%);">
+
+            <!-- Main Glass Card -->
+            <div class="glass-card neon-border-pulse rounded-2xl p-6 md:p-7 relative slide-in-left">
+
+                <!-- Corner Accents -->
+                <div class="corner-accent corner-tl"></div>
+                <div class="corner-accent corner-tr"></div>
+                <div class="corner-accent corner-bl"></div>
+                <div class="corner-accent corner-br"></div>
+
+                <!-- Warning Icon + Badge -->
+                <div class="flex items-center gap-3 mb-5 fade-in-up stagger-1">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-xl"
+                         style="background: rgba(246, 199, 30, 0.1); border: 1px solid rgba(246, 199, 30, 0.25);">
+                        <!-- Warning Icon SVG -->
+                        <svg class="w-5 h-5 warning-glow" viewBox="0 0 24 24" fill="none" stroke="#F6C71E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <span class="text-xs font-semibold tracking-widest uppercase"
+                          style="color: #A9ADB1; letter-spacing: 3px;">Troubleshoot</span>
+                </div>
+
+                <!-- Title -->
+                <h1 class="text-2xl md:text-3xl font-black leading-tight title-glow mb-5 fade-in-up stagger-2"
+                    style="color: #F6C71E; letter-spacing: -0.5px;">
+                    LOW PERFORMANCE?<br>DON'T PANIC!
+                </h1>
+
+                <!-- Accent Divider -->
+                <div class="accent-line w-20 mb-5 fade-in-up stagger-2"></div>
+
+                <!-- Bullet Points -->
+                <div class="space-y-3.5 mb-5 fade-in-up stagger-3">
+                    <!-- Bullet 1: Test Thumbnails -->
+                    <div class="flex items-center gap-3">
+                        <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bullet-glow"
+                             style="background: rgba(207, 154, 52, 0.12); border: 1px solid rgba(207, 154, 52, 0.25);">
+                            <!-- Test/Flask Icon -->
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#CF9A34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 3h6"/>
+                                <path d="M10 3v7.4a2 2 0 0 1-.4 1.2L4 19a2 2 0 0 0 1.6 3h12.8a2 2 0 0 0 1.6-3l-5.6-7.4a2 2 0 0 1-.4-1.2V3"/>
+                                <path d="M7.5 16h9"/>
+                            </svg>
+                        </div>
+                        <span class="text-base font-bold tracking-wide" style="color: #FFFFFF;">
+                            Test Thumbnails
+                        </span>
+                    </div>
+
+                    <!-- Bullet 2: Test Titles -->
+                    <div class="flex items-center gap-3">
+                        <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bullet-glow"
+                             style="background: rgba(207, 154, 52, 0.12); border: 1px solid rgba(207, 154, 52, 0.25);">
+                            <!-- Edit/Test Icon -->
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#CF9A34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 20h9"/>
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                            </svg>
+                        </div>
+                        <span class="text-base font-bold tracking-wide" style="color: #FFFFFF;">
+                            Test Titles
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Highlight Line: Improve Clarity -->
+                <div class="flex items-center gap-3 fade-in-up stagger-4">
+                    <div class="flex-shrink-0 w-1 h-8 rounded-full"
+                         style="background: linear-gradient(180deg, #E8973F, #CF9A34);"></div>
+                    <span class="text-lg font-extrabold uppercase tracking-wider"
+                          style="color: #E8973F; text-shadow: 0 0 20px rgba(232, 151, 63, 0.35);">
+                        Improve Clarity
+                    </span>
+                </div>
+
+                <!-- Quote Text -->
+                <div class="quote-text pl-4 mt-5 fade-in-up stagger-5">
+                    <p class="text-xs leading-relaxed" style="color: #A9ADB1; font-style: italic;">
+                        "If your impressions are very low and your CTR is very weak within those first 24 hours — test the thumbnail, test a different title, improve that clarity."
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT HALF: Speaker/A-Roll Area -->
+        <div class="w-[40%] speaker-area relative flex flex-col items-center justify-end overflow-hidden">
+            <!-- Gradient overlay for depth -->
+            <div class="absolute inset-0"
+                 style="background: linear-gradient(to right, #150A01 0%, transparent 30%);"></div>
+
+            <!-- Speaker silhouette placeholder -->
+            <div class="relative z-10 flex flex-col items-center mb-8">
+                <!-- Abstract person silhouette -->
+                <div class="relative">
+                    <!-- Head -->
+                    <div class="w-16 h-16 rounded-full mx-auto mb-2"
+                         style="background: linear-gradient(135deg, #542A06, #200F00); border: 2px solid rgba(207, 154, 52, 0.2); box-shadow: 0 0 30px rgba(207, 154, 52, 0.1);"></div>
+                    <!-- Body -->
+                    <div class="w-24 h-20 rounded-t-full mx-auto"
+                         style="background: linear-gradient(180deg, #542A06, #200F00); border-top: 2px solid rgba(207, 154, 52, 0.15); border-left: 1px solid rgba(207, 154, 52, 0.08); border-right: 1px solid rgba(207, 154, 52, 0.08);"></div>
+                </div>
+                <!-- Speaker label -->
+                <span class="text-[10px] font-semibold tracking-widest uppercase mt-3"
+                      style="color: rgba(169, 173, 177, 0.5); letter-spacing: 2px;">Speaker</span>
+            </div>
+
+            <!-- Decorative elements -->
+            <div class="absolute top-6 right-4 w-2 h-2 rounded-full"
+                 style="background: rgba(207, 154, 52, 0.3); box-shadow: 0 0 10px rgba(207, 154, 52, 0.2);"></div>
+            <div class="absolute top-16 right-8 w-1.5 h-1.5 rounded-full"
+                 style="background: rgba(232, 151, 63, 0.25);"></div>
+            <div class="absolute bottom-20 right-6 w-1 h-1 rounded-full"
+                 style="background: rgba(207, 154, 52, 0.2);"></div>
+        </div>
+
+        <!-- Split line divider -->
+        <div class="absolute top-0 bottom-0 left-[60%] w-px"
+             style="background: linear-gradient(180deg, transparent, rgba(207, 154, 52, 0.2) 20%, rgba(207, 154, 52, 0.3) 50%, rgba(207, 154, 52, 0.2) 80%, transparent);"></div>
+    </div>
+
+</body>
+</html>

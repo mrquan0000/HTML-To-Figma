@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TERRIBLE ADVICE? - Overlay Pop Card</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            warmOrange: '#E8973F',
+                            deepOrange: '#D36708',
+                            darkBg: '#200F00',
+                            brightYellow: '#F6C71E',
+                            glassGray: '#A9ADB1',
+                            blackSpecial: '#150A01',
+                            warmWood: '#542A06',
+                            accentRed: '#C21403',
+                            black: '#000000',
+                            white: '#FFFFFF',
+                            neonGold: '#CF9A34',
+                            positiveGreen: '#35CC23'
+                        }
+                    },
+                    fontFamily: {
+                        montserrat: ['Montserrat', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #150A01;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Simulated dimmed video background */
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at center, rgba(32, 15, 0, 0.7) 0%, rgba(21, 10, 1, 0.95) 70%),
+                linear-gradient(135deg, #1a0c00 0%, #0d0600 50%, #150A01 100%);
+            z-index: 1;
+        }
+
+        /* Speaker silhouette placeholder */
+        .speaker-silhouette {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 400px;
+            background: radial-gradient(ellipse at bottom center, rgba(84, 42, 6, 0.3) 0%, transparent 70%);
+            z-index: 2;
+        }
+
+        /* Main card container */
+        .card-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 600px;
+            padding: 0 20px;
+            animation: cardPopIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        /* Card pop-up animation - starts visible for Figma compatibility */
+        @keyframes cardPopIn {
+            0% {
+                transform: scale(0.92);
+                filter: brightness(0.8);
+            }
+            50% {
+                transform: scale(1.02);
+                filter: brightness(1.1);
+            }
+            100% {
+                transform: scale(1);
+                filter: brightness(1);
+            }
+        }
+
+        /* Glow pulse animation */
+        @keyframes glowPulse {
+            0%, 100% {
+                box-shadow: 
+                    0 0 20px rgba(207, 154, 52, 0.3),
+                    0 0 40px rgba(207, 154, 52, 0.15),
+                    0 0 60px rgba(207, 154, 52, 0.08),
+                    inset 0 0 30px rgba(207, 154, 52, 0.05);
+            }
+            50% {
+                box-shadow: 
+                    0 0 30px rgba(207, 154, 52, 0.45),
+                    0 0 60px rgba(207, 154, 52, 0.25),
+                    0 0 90px rgba(207, 154, 52, 0.12),
+                    inset 0 0 40px rgba(207, 154, 52, 0.08);
+            }
+        }
+
+        /* The main glassmorphism card */
+        .glass-card {
+            background: rgba(32, 15, 0, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1.5px solid rgba(207, 154, 52, 0.4);
+            border-radius: 24px;
+            padding: 40px 36px;
+            position: relative;
+            overflow: hidden;
+            animation: glowPulse 3s ease-in-out infinite;
+        }
+
+        /* Glassmorphism inner shine */
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(207, 154, 52, 0.03) 25%,
+                rgba(207, 154, 52, 0.08) 50%,
+                rgba(207, 154, 52, 0.03) 75%,
+                transparent 100%
+            );
+            animation: lightsweep 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes lightsweep {
+            0% {
+                transform: translateX(-50%);
+            }
+            100% {
+                transform: translateX(50%);
+            }
+        }
+
+        /* Top accent line */
+        .accent-line {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #CF9A34, #F6C71E, #CF9A34, transparent);
+            border-radius: 0 0 4px 4px;
+        }
+
+        /* Icon container styling */
+        .icon-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .icon-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(194, 20, 3, 0.15);
+            border: 1px solid rgba(194, 20, 3, 0.3);
+        }
+
+        .icon-badge .material-icons-outlined {
+            font-size: 28px;
+            color: #C21403;
+        }
+
+        .icon-badge.sad {
+            background: rgba(207, 154, 52, 0.12);
+            border-color: rgba(207, 154, 52, 0.3);
+        }
+
+        .icon-badge.sad .material-icons-outlined {
+            color: #CF9A34;
+        }
+
+        /* Title styling */
+        .title-main {
+            font-size: 2.5rem;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+            line-height: 1.1;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .title-main .highlight {
+            color: #C21403;
+            text-shadow: 
+                0 0 20px rgba(194, 20, 3, 0.5),
+                0 0 40px rgba(194, 20, 3, 0.2);
+            position: relative;
+        }
+
+        .title-main .yellow-text {
+            color: #F6C71E;
+            text-shadow: 
+                0 0 20px rgba(246, 199, 30, 0.4),
+                0 0 40px rgba(246, 199, 30, 0.15);
+        }
+
+        /* Subtitle */
+        .subtitle {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #FFFFFF;
+            text-align: center;
+            margin-bottom: 24px;
+            letter-spacing: 0.02em;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Divider */
+        .divider {
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #CF9A34, transparent);
+            margin: 0 auto 24px;
+        }
+
+        /* Quote text */
+        .quote-text {
+            font-size: 1rem;
+            font-weight: 500;
+            color: rgba(169, 173, 177, 0.9);
+            text-align: center;
+            line-height: 1.7;
+            letter-spacing: 0.01em;
+            font-style: italic;
+        }
+
+        .quote-text .emphasis {
+            color: #F6C71E;
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        .quote-text .red-emphasis {
+            color: #C21403;
+            font-weight: 700;
+            font-style: normal;
+            text-shadow: 0 0 10px rgba(194, 20, 3, 0.3);
+        }
+
+        /* Bottom decorative dots */
+        .bottom-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 24px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(207, 154, 52, 0.4);
+        }
+
+        .dot.active {
+            background: #CF9A34;
+            box-shadow: 0 0 8px rgba(207, 154, 52, 0.5);
+        }
+
+        /* Corner accents */
+        .corner-accent {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: rgba(207, 154, 52, 0.3);
+            border-style: solid;
+        }
+
+        .corner-accent.top-left {
+            top: 12px;
+            left: 12px;
+            border-width: 2px 0 0 2px;
+            border-radius: 4px 0 0 0;
+        }
+
+        .corner-accent.top-right {
+            top: 12px;
+            right: 12px;
+            border-width: 2px 2px 0 0;
+            border-radius: 0 4px 0 0;
+        }
+
+        .corner-accent.bottom-left {
+            bottom: 12px;
+            left: 12px;
+            border-width: 0 0 2px 2px;
+            border-radius: 0 0 0 4px;
+        }
+
+        .corner-accent.bottom-right {
+            bottom: 12px;
+            right: 12px;
+            border-width: 0 2px 2px 0;
+            border-radius: 0 0 4px 0;
+        }
+
+        /* Floating particles */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: rgba(207, 154, 52, 0.3);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .particle:nth-child(1) { top: 20%; left: 10%; animation-delay: 0s; }
+        .particle:nth-child(2) { top: 60%; right: 15%; animation-delay: 2s; }
+        .particle:nth-child(3) { bottom: 30%; left: 20%; animation-delay: 4s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
+            50% { transform: translateY(-20px) scale(1.5); opacity: 0.6; }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .title-main {
+                font-size: 1.8rem;
+            }
+            .subtitle {
+                font-size: 1.2rem;
+            }
+            .glass-card {
+                padding: 32px 24px;
+            }
+            .quote-text {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Simulated dimmed video background -->
+    <div class="video-background"></div>
+    <div class="speaker-silhouette"></div>
+
+    <!-- Floating particles for ambient effect -->
+    <div class="particle" style="position:fixed;top:15%;left:8%;z-index:3;"></div>
+    <div class="particle" style="position:fixed;top:70%;right:12%;z-index:3;"></div>
+    <div class="particle" style="position:fixed;bottom:20%;left:25%;z-index:3;"></div>
+
+    <!-- Main Card Container -->
+    <div class="card-container">
+        <div class="glass-card">
+            <!-- Top accent line -->
+            <div class="accent-line"></div>
+
+            <!-- Corner accents -->
+            <div class="corner-accent top-left"></div>
+            <div class="corner-accent top-right"></div>
+            <div class="corner-accent bottom-left"></div>
+            <div class="corner-accent bottom-right"></div>
+
+            <!-- Icons -->
+            <div class="icon-container">
+                <div class="icon-badge">
+                    <span class="material-icons-outlined">help_outline</span>
+                </div>
+                <div class="icon-badge sad">
+                    <span class="material-icons-outlined">sentiment_very_dissatisfied</span>
+                </div>
+            </div>
+
+            <!-- Main Title -->
+            <h1 class="title-main">
+                <span class="highlight">TERRIBLE</span>
+                <span class="yellow-text"> ADVICE?</span>
+            </h1>
+
+            <!-- Subtitle -->
+            <p class="subtitle">Leave 1000 Subs?</p>
+
+            <!-- Divider -->
+            <div class="divider"></div>
+
+            <!-- Quote Content -->
+            <p class="quote-text">
+                "So at first, I'm sure he thought that it sounded like <span class="red-emphasis">terrible advice</span>, because why would you leave a channel that already has a <span class="emphasis">thousand subscribers</span>?"
+            </p>
+
+            <!-- Bottom decorative dots -->
+            <div class="bottom-dots">
+                <div class="dot"></div>
+                <div class="dot active"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

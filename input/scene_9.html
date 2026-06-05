@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video #3 Initial Performance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-dark': '#200F00',
+                        'brand-darker': '#150A01',
+                        'brand-gold': '#F6C71E',
+                        'brand-neon': '#CF9A34',
+                        'brand-orange': '#E8973F',
+                        'brand-deep-orange': '#D36708',
+                        'brand-wood': '#542A06',
+                        'brand-red': '#C21403',
+                        'brand-green': '#35CC23',
+                        'brand-gray': '#A9ADB1',
+                    },
+                    fontFamily: {
+                        'montserrat': ['Montserrat', 'sans-serif'],
+                        'pop': ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes glowPulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 20px rgba(207, 154, 52, 0.3),
+                    0 0 45px rgba(207, 154, 52, 0.12),
+                    0 0 80px rgba(207, 154, 52, 0.06),
+                    inset 0 1px 1px rgba(207, 154, 52, 0.1);
+            }
+            50% {
+                box-shadow:
+                    0 0 30px rgba(207, 154, 52, 0.45),
+                    0 0 65px rgba(207, 154, 52, 0.22),
+                    0 0 110px rgba(207, 154, 52, 0.1),
+                    inset 0 1px 1px rgba(207, 154, 52, 0.15);
+            }
+        }
+
+        @keyframes titleGlow {
+            0%, 100% {
+                text-shadow:
+                    0 0 10px rgba(246, 199, 30, 0.45),
+                    0 0 25px rgba(246, 199, 30, 0.2);
+            }
+            50% {
+                text-shadow:
+                    0 0 16px rgba(246, 199, 30, 0.65),
+                    0 0 35px rgba(246, 199, 30, 0.35),
+                    0 0 55px rgba(246, 199, 30, 0.15);
+            }
+        }
+
+        @keyframes lightsweep {
+            0% { transform: translateX(-180%) skewX(-15deg); }
+            100% { transform: translateX(280%) skewX(-15deg); }
+        }
+
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        @keyframes borderShimmer {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes dotPulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.3); }
+        }
+
+        @keyframes warningBlink {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
+        .glow-border {
+            animation: glowPulse 3.2s ease-in-out infinite;
+        }
+
+        .title-glow {
+            animation: titleGlow 2.8s ease-in-out infinite;
+        }
+
+        .icon-float {
+            animation: iconFloat 3.5s ease-in-out infinite;
+        }
+
+        .dot-pulse {
+            animation: dotPulse 2s ease-in-out infinite;
+        }
+
+        .warning-blink {
+            animation: warningBlink 2.5s ease-in-out infinite;
+        }
+
+        .lightsweep-effect {
+            overflow: hidden;
+            position: relative;
+        }
+
+        .lightsweep-effect::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 45%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(207, 154, 52, 0.05) 35%,
+                rgba(246, 199, 30, 0.09) 50%,
+                rgba(207, 154, 52, 0.05) 65%,
+                transparent 100%
+            );
+            animation: lightsweep 5s ease-in-out infinite;
+            animation-delay: 1.5s;
+            pointer-events: none;
+        }
+
+        .neon-border-shimmer {
+            background: linear-gradient(
+                90deg,
+                rgba(207, 154, 52, 0.55),
+                rgba(246, 199, 30, 0.85),
+                rgba(232, 151, 63, 0.65),
+                rgba(207, 154, 52, 0.55)
+            );
+            background-size: 300% 100%;
+            animation: borderShimmer 4.5s linear infinite;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .glass-bg {
+            background: rgba(32, 15, 0, 0.84);
+            backdrop-filter: blur(22px) saturate(1.4);
+            -webkit-backdrop-filter: blur(22px) saturate(1.4);
+        }
+
+        .bullet-dot {
+            box-shadow: 0 0 8px rgba(207, 154, 52, 0.5), 0 0 16px rgba(207, 154, 52, 0.2);
+        }
+
+        .red-glow {
+            box-shadow: 0 0 8px rgba(194, 20, 3, 0.5), 0 0 16px rgba(194, 20, 3, 0.2);
+        }
+
+        .red-text-glow {
+            text-shadow: 0 0 8px rgba(194, 20, 3, 0.5), 0 0 20px rgba(194, 20, 3, 0.2);
+        }
+
+        .problem-line-bg {
+            background: linear-gradient(90deg, rgba(232, 151, 63, 0.08) 0%, rgba(232, 151, 63, 0.04) 100%);
+            border-left: 2.5px solid #E8973F;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center overflow-hidden p-4" style="background: #150A01;">
+
+    <!-- Background atmosphere -->
+    <div class="fixed inset-0 pointer-events-none">
+        <div class="absolute inset-0" style="background: radial-gradient(ellipse at 25% 50%, rgba(84, 42, 6, 0.12) 0%, transparent 55%);"></div>
+        <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22 opacity=%220.03%22/%3E%3C/svg%3E'); opacity: 0.35;"></div>
+        <!-- Subtle warm glow from card area -->
+        <div class="absolute top-1/2 left-1/4 -translate-y-1/2 -translate-x-1/2 w-96 h-96 rounded-full" style="background: radial-gradient(circle, rgba(194, 20, 3, 0.06) 0%, rgba(207, 154, 52, 0.04) 40%, transparent 70%);"></div>
+    </div>
+
+    <!-- Split Grid Layout -->
+    <div class="relative z-10 w-full flex" style="max-width: 1100px; margin: 0 auto;">
+
+        <!-- LEFT HALF — Card Area -->
+        <div class="w-1/2 flex items-center justify-center pr-6">
+            <div class="w-full" style="max-width: 480px;">
+
+                <!-- Outer neon border wrapper -->
+                <div class="glow-border w-full rounded-3xl p-[1.5px] neon-border-shimmer">
+
+                    <!-- Inner card with glassmorphism -->
+                    <div class="glass-bg lightsweep-effect w-full rounded-3xl relative" style="border: 1px solid rgba(207, 154, 52, 0.12);">
+
+                        <!-- Card Content -->
+                        <div class="px-8 py-10 sm:px-10 sm:py-12 flex flex-col items-start text-left relative z-10">
+
+                            <!-- Top Icon Row: Dead End + Box -->
+                            <div class="flex items-center gap-4 mb-7">
+                                <!-- Dead End Icon -->
+                                <div class="icon-float flex items-center justify-center w-11 h-11 rounded-xl" style="background: linear-gradient(135deg, rgba(194, 20, 3, 0.15) 0%, rgba(32, 15, 0, 0.5) 100%); border: 1px solid rgba(194, 20, 3, 0.25);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 2v14M12 16l-4-4M12 16l4-4" stroke="#C21403" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <line x1="5" y1="22" x2="19" y2="22" stroke="#C21403" stroke-width="2" stroke-linecap="round"/>
+                                    </svg>
+                                </div>
+
+                                <!-- Box Icon -->
+                                <div class="icon-float flex items-center justify-center w-11 h-11 rounded-xl" style="background: linear-gradient(135deg, rgba(207, 154, 52, 0.15) 0%, rgba(32, 15, 0, 0.5) 100%); border: 1px solid rgba(207, 154, 52, 0.25); animation-delay: 0.8s;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M21 8V21H3V8" stroke="#CF9A34" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M1 3h22v5H1z" stroke="#CF9A34" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M10 12h4" stroke="#F6C71E" stroke-width="1.5" stroke-linecap="round"/>
+                                    </svg>
+                                </div>
+
+                                <!-- Decorative dots -->
+                                <div class="flex items-center gap-1.5 ml-auto">
+                                    <div class="dot-pulse w-1 h-1 rounded-full" style="background: rgba(207, 154, 52, 0.4); animation-delay: 0s;"></div>
+                                    <div class="dot-pulse w-1.5 h-1.5 rounded-full" style="background: rgba(207, 154, 52, 0.6); animation-delay: 0.3s;"></div>
+                                    <div class="dot-pulse w-1 h-1 rounded-full" style="background: rgba(207, 154, 52, 0.4); animation-delay: 0.6s;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Decorative separator line -->
+                            <div class="w-full mb-6">
+                                <div class="h-[1px] w-full" style="background: linear-gradient(90deg, rgba(207, 154, 52, 0.5), rgba(207, 154, 52, 0.1), transparent);"></div>
+                            </div>
+
+                            <!-- Title: VIDEO #3 INITIAL PERFORMANCE -->
+                            <h1 class="title-glow font-montserrat font-900 tracking-wider uppercase leading-none mb-8" style="color: #F6C71E; font-size: clamp(1.5rem, 4vw, 2.1rem); letter-spacing: 0.12em;">
+                                VIDEO #3 INITIAL PERFORMANCE
+                            </h1>
+
+                            <!-- Bullet Points -->
+                            <div class="flex flex-col gap-5 w-full">
+
+                                <!-- Bullet 1: Dead at first (RED - negative) -->
+                                <div class="flex items-start gap-4">
+                                    <div class="mt-2 flex-shrink-0 w-2.5 h-2.5 rounded-full red-glow warning-blink" style="background: #C21403;"></div>
+                                    <p class="font-pop font-700 leading-relaxed red-text-glow" style="color: #C21403; font-size: clamp(0.95rem, 2.5vw, 1.15rem);">
+                                        Dead at first
+                                    </p>
+                                </div>
+
+                                <!-- Bullet 2: Low Impressions (White) -->
+                                <div class="flex items-start gap-4">
+                                    <div class="mt-2 flex-shrink-0 w-2.5 h-2.5 rounded-full bullet-dot" style="background: #CF9A34;"></div>
+                                    <p class="font-pop font-500 leading-relaxed" style="color: rgba(255, 255, 255, 0.92); font-size: clamp(0.95rem, 2.5vw, 1.15rem);">
+                                        Low Impressions
+                                    </p>
+                                </div>
+
+                                <!-- Bullet 3: Few Clicks (White) -->
+                                <div class="flex items-start gap-4">
+                                    <div class="mt-2 flex-shrink-0 w-2.5 h-2.5 rounded-full bullet-dot" style="background: #CF9A34; animation-delay: 0.5s;"></div>
+                                    <p class="font-pop font-500 leading-relaxed" style="color: rgba(255, 255, 255, 0.92); font-size: clamp(0.95rem, 2.5vw, 1.15rem);">
+                                        Few Clicks
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Problem Line Separator -->
+                            <div class="mt-8 w-full">
+                                <div class="h-[1px] w-full" style="background: linear-gradient(90deg, rgba(232, 151, 63, 0.4), rgba(232, 151, 63, 0.08), transparent);"></div>
+                            </div>
+
+                            <!-- Problem Line -->
+                            <div class="mt-6 w-full problem-line-bg rounded-lg px-4 py-3">
+                                <p class="font-montserrat font-700 uppercase tracking-wide" style="color: #E8973F; font-size: clamp(0.85rem, 2.2vw, 1rem); letter-spacing: 0.08em;">
+                                    Problem: Packaging, not content
+                                </p>
+                            </div>
+
+                            <!-- Bottom decorative separator -->
+                            <div class="mt-8 w-full flex items-center gap-3">
+                                <div class="h-[1px] flex-1" style="background: linear-gradient(90deg, rgba(207, 154, 52, 0.35), transparent);"></div>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-1 h-1 rounded-full" style="background: rgba(207, 154, 52, 0.3);"></div>
+                                    <div class="w-1.5 h-1.5 rounded-full" style="background: rgba(207, 154, 52, 0.5);"></div>
+                                    <div class="w-1 h-1 rounded-full" style="background: rgba(207, 154, 52, 0.3);"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Corner accents -->
+                        <div class="absolute top-4 left-4 w-5 h-5" style="border-top: 1.5px solid rgba(207, 154, 52, 0.25); border-left: 1.5px solid rgba(207, 154, 52, 0.25); border-top-left-radius: 8px;"></div>
+                        <div class="absolute top-4 right-4 w-5 h-5" style="border-top: 1.5px solid rgba(207, 154, 52, 0.25); border-right: 1.5px solid rgba(207, 154, 52, 0.25); border-top-right-radius: 8px;"></div>
+                        <div class="absolute bottom-4 left-4 w-5 h-5" style="border-bottom: 1.5px solid rgba(207, 154, 52, 0.25); border-left: 1.5px solid rgba(207, 154, 52, 0.25); border-bottom-left-radius: 8px;"></div>
+                        <div class="absolute bottom-4 right-4 w-5 h-5" style="border-bottom: 1.5px solid rgba(207, 154, 52, 0.25); border-right: 1.5px solid rgba(207, 154, 52, 0.25); border-bottom-right-radius: 8px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT HALF — Speaker Area (empty for A-roll overlay) -->
+        <div class="w-1/2 relative">
+            <!-- Subtle ambient glow suggesting speaker presence -->
+            <div class="absolute inset-0 flex items-center justify-center">
+                <div class="w-64 h-80 rounded-full" style="background: radial-gradient(ellipse, rgba(211, 103, 8, 0.04) 0%, transparent 70%);"></div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

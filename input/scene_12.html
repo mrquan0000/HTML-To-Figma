@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video #7: Repeat Success</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            warm: '#E8973F',
+                            darkOrange: '#D36708',
+                            darkGlow: '#200F00',
+                            brightYellow: '#F6C71E',
+                            gray: '#A9ADB1',
+                            deepBlack: '#150A01',
+                            wood: '#542A06',
+                            red: '#C21403',
+                            neonGold: '#CF9A34',
+                            green: '#35CC23',
+                        }
+                    },
+                    fontFamily: {
+                        montserrat: ['Montserrat', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #150A01;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ===== NEON GLOW BORDER ANIMATION ===== */
+        @keyframes neonBorderPulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 8px rgba(207, 154, 52, 0.5),
+                    0 0 16px rgba(207, 154, 52, 0.3),
+                    0 0 32px rgba(207, 154, 52, 0.15),
+                    inset 0 0 8px rgba(207, 154, 52, 0.08);
+            }
+            50% {
+                box-shadow:
+                    0 0 12px rgba(207, 154, 52, 0.7),
+                    0 0 24px rgba(207, 154, 52, 0.45),
+                    0 0 48px rgba(207, 154, 52, 0.25),
+                    0 0 80px rgba(207, 154, 52, 0.1),
+                    inset 0 0 12px rgba(207, 154, 52, 0.12);
+            }
+        }
+
+        .neon-card {
+            animation: neonBorderPulse 3s ease-in-out infinite;
+        }
+
+        /* ===== SEQUENTIAL BULLET GLOW ===== */
+        @keyframes bulletSequentialGlow {
+            0%, 20% {
+                text-shadow:
+                    0 0 4px currentColor,
+                    0 0 12px currentColor,
+                    0 0 24px currentColor;
+            }
+            30%, 100% {
+                text-shadow: none;
+            }
+        }
+
+        @keyframes bulletSequentialGlowDelayed1 {
+            0%, 28% {
+                text-shadow: none;
+            }
+            35%, 55% {
+                text-shadow:
+                    0 0 4px currentColor,
+                    0 0 12px currentColor,
+                    0 0 24px currentColor;
+            }
+            65%, 100% {
+                text-shadow: none;
+            }
+        }
+
+        @keyframes bulletSequentialGlowDelayed2 {
+            0%, 56% {
+                text-shadow: none;
+            }
+            63%, 83% {
+                text-shadow:
+                    0 0 4px currentColor,
+                    0 0 12px currentColor,
+                    0 0 24px currentColor;
+            }
+            93%, 100% {
+                text-shadow: none;
+            }
+        }
+
+        .bullet-1 {
+            animation: bulletSequentialGlow 2.5s ease-in-out infinite;
+        }
+
+        .bullet-2 {
+            animation: bulletSequentialGlowDelayed1 2.5s ease-in-out infinite;
+        }
+
+        .bullet-3 {
+            animation: bulletSequentialGlowDelayed2 2.5s ease-in-out infinite;
+        }
+
+        /* ===== TITLE GLOW ===== */
+        @keyframes titleGlow {
+            0%, 100% {
+                text-shadow:
+                    0 0 6px rgba(246, 199, 30, 0.4),
+                    0 0 14px rgba(246, 199, 30, 0.2),
+                    0 0 28px rgba(246, 199, 30, 0.1);
+            }
+            50% {
+                text-shadow:
+                    0 0 8px rgba(246, 199, 30, 0.6),
+                    0 0 20px rgba(246, 199, 30, 0.35),
+                    0 0 40px rgba(246, 199, 30, 0.15),
+                    0 0 60px rgba(246, 199, 30, 0.08);
+            }
+        }
+
+        .title-glow {
+            animation: titleGlow 3.5s ease-in-out infinite;
+        }
+
+        /* ===== RESULT LINE GLOW ===== */
+        @keyframes resultGlow {
+            0%, 100% {
+                text-shadow:
+                    0 0 4px rgba(232, 151, 63, 0.3),
+                    0 0 10px rgba(232, 151, 63, 0.15);
+            }
+            50% {
+                text-shadow:
+                    0 0 8px rgba(232, 151, 63, 0.5),
+                    0 0 18px rgba(232, 151, 63, 0.25),
+                    0 0 32px rgba(232, 151, 63, 0.1);
+            }
+        }
+
+        .result-glow {
+            animation: resultGlow 3s ease-in-out infinite;
+        }
+
+        /* ===== ICON PULSE ===== */
+        @keyframes iconPulse {
+            0%, 100% {
+                filter: drop-shadow(0 0 4px rgba(207, 154, 52, 0.4));
+            }
+            50% {
+                filter: drop-shadow(0 0 10px rgba(207, 154, 52, 0.7))
+                        drop-shadow(0 0 20px rgba(207, 154, 52, 0.3));
+            }
+        }
+
+        .icon-pulse {
+            animation: iconPulse 2.5s ease-in-out infinite;
+        }
+
+        /* ===== DIVIDER SHIMMER ===== */
+        @keyframes shimmer {
+            0% {
+                background-position: -200% center;
+            }
+            100% {
+                background-position: 200% center;
+            }
+        }
+
+        .shimmer-divider {
+            background: linear-gradient(
+                90deg,
+                rgba(207, 154, 52, 0.15) 0%,
+                rgba(207, 154, 52, 0.6) 50%,
+                rgba(207, 154, 52, 0.15) 100%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== MAIN CONTAINER: Split Grid Layout ===== -->
+    <div class="w-full max-w-[1200px] min-h-[600px] flex items-center justify-center p-4 md:p-8">
+
+        <!-- Split Grid -->
+        <div class="w-full flex flex-col md:flex-row items-stretch gap-0">
+
+            <!-- ===== LEFT PANEL: Card Content Area ===== -->
+            <div class="w-full md:w-1/2 flex items-center justify-center p-4 md:p-8 lg:p-12 min-h-[500px]">
+                
+                <!-- Main Card with Glassmorphism + Neon Glow -->
+                <div class="neon-card relative w-full rounded-2xl overflow-hidden"
+                     style="background: rgba(32, 15, 0, 0.85);
+                            border: 1.5px solid rgba(207, 154, 52, 0.5);
+                            backdrop-filter: blur(12px);
+                            -webkit-backdrop-filter: blur(12px);">
+                    
+                    <!-- Inner glow overlay -->
+                    <div class="absolute inset-0 rounded-2xl pointer-events-none"
+                         style="background: linear-gradient(135deg, rgba(207, 154, 52, 0.06) 0%, transparent 40%, rgba(207, 154, 52, 0.03) 100%);
+                                border-radius: inherit;">
+                    </div>
+
+                    <!-- Card Content -->
+                    <div class="relative z-10 p-6 md:p-8 lg:p-10">
+
+                        <!-- Header: Icon + Video Number Badge -->
+                        <div class="flex items-center gap-3 mb-6">
+                            <!-- Repeat Icon -->
+                            <div class="icon-pulse flex-shrink-0">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M17 1L21 5L17 9" stroke="#CF9A34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M3 11V9C3 6.79086 4.79086 5 7 5H21" stroke="#CF9A34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M7 23L3 19L7 15" stroke="#CF9A34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M21 13V15C21 17.2091 19.2091 19 17 19H3" stroke="#CF9A34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+
+                            <!-- Video Number Badge -->
+                            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
+                                 style="background: rgba(207, 154, 52, 0.12);
+                                        border: 1px solid rgba(207, 154, 52, 0.3);">
+                                <span class="text-xs font-semibold tracking-widest uppercase"
+                                      style="color: #CF9A34;">Case Study</span>
+                            </div>
+                        </div>
+
+                        <!-- Main Title -->
+                        <h1 class="title-glow text-2xl md:text-3xl lg:text-[2rem] font-black uppercase tracking-tight leading-tight mb-2"
+                            style="color: #F6C71E;
+                                   font-family: 'Montserrat', sans-serif;">
+                            VIDEO #7
+                        </h1>
+                        <h2 class="title-glow text-lg md:text-xl lg:text-2xl font-extrabold uppercase tracking-wide mb-8"
+                            style="color: #F6C71E;
+                                   font-family: 'Montserrat', sans-serif;">
+                            REPEAT SUCCESS
+                        </h2>
+
+                        <!-- Shimmer Divider -->
+                        <div class="shimmer-divider h-[1px] w-full rounded-full mb-8"></div>
+
+                        <!-- Bullet Points Section -->
+                        <div class="space-y-5">
+
+                            <!-- Bullet 1: Initial CTR - Red Alert -->
+                            <div class="bullet-1 flex items-start gap-3">
+                                <!-- Red Warning Dot -->
+                                <div class="flex-shrink-0 mt-1.5">
+                                    <div class="w-2.5 h-2.5 rounded-full"
+                                         style="background: #C21403;
+                                                box-shadow: 0 0 8px rgba(194, 20, 3, 0.6), 0 0 16px rgba(194, 20, 3, 0.3);">
+                                    </div>
+                                </div>
+                                <div>
+                                    <span class="text-sm md:text-base font-bold tracking-wide"
+                                          style="color: #C21403;">
+                                        Initial CTR: Extremely Weak
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Bullet 2: Changed Thumbnail & Title - White -->
+                            <div class="bullet-2 flex items-start gap-3">
+                                <!-- White Accent Dot -->
+                                <div class="flex-shrink-0 mt-1.5">
+                                    <div class="w-2.5 h-2.5 rounded-full"
+                                         style="background: #FFFFFF;
+                                                box-shadow: 0 0 8px rgba(255, 255, 255, 0.5), 0 0 16px rgba(255, 255, 255, 0.2);">
+                                    </div>
+                                </div>
+                                <div>
+                                    <span class="text-sm md:text-base font-semibold"
+                                          style="color: #FFFFFF;">
+                                        Changed Thumbnail &amp; Title
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Shimmer Sub-Divider -->
+                            <div class="shimmer-divider h-[1px] w-3/4 rounded-full ml-6"></div>
+
+                            <!-- Bullet 3: Result Line - Warm Orange with Success Icon -->
+                            <div class="bullet-3 flex items-start gap-3">
+                                <!-- Success Icon -->
+                                <div class="flex-shrink-0 mt-0.5">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M22 11.08V12C21.9988 14.1564 21.3005 16.2547 20.0093 17.9818C18.7182 19.7089 16.9033 20.9725 14.8354 21.5839C12.7674 22.1954 10.5573 22.1219 8.53447 21.3746C6.51168 20.6273 4.78465 19.2461 3.61096 17.4371C2.43727 15.628 1.87979 13.4881 2.02168 11.3363C2.16356 9.18456 2.99721 7.13633 4.39828 5.49707C5.79935 3.85781 7.69279 2.71538 9.79619 2.24015C11.8996 1.76491 14.1003 1.98234 16.07 2.86" stroke="#35CC23" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M22 4L12 14.01L9 11.01" stroke="#35CC23" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <span class="text-base md:text-lg font-extrabold uppercase tracking-wide"
+                                          style="color: #E8973F;">
+                                        Result: 30,000+ Views
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Accent Bar -->
+                        <div class="mt-8 flex items-center gap-2">
+                            <div class="h-[3px] w-8 rounded-full" style="background: #CF9A34;"></div>
+                            <div class="h-[3px] w-4 rounded-full" style="background: rgba(207, 154, 52, 0.5);"></div>
+                            <div class="h-[3px] w-2 rounded-full" style="background: rgba(207, 154, 52, 0.25);"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== RIGHT PANEL: Speaker Area (A-Roll Space) ===== -->
+            <div class="w-full md:w-1/2 flex items-center justify-center min-h-[300px] md:min-h-[500px] relative">
+                
+                <!-- Subtle speaker area indicator -->
+                <div class="relative flex flex-col items-center justify-center gap-4 p-8">
+                    
+                    <!-- Speaker Placeholder Silhouette -->
+                    <div class="relative">
+                        <div class="w-24 h-24 md:w-32 md:h-32 rounded-full flex items-center justify-center"
+                             style="background: rgba(207, 154, 52, 0.08);
+                                    border: 2px solid rgba(207, 154, 52, 0.15);">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="md:w-14 md:h-14">
+                                <path d="M20 21V19C20 16.7909 18.2091 15 16 15H8C5.79086 15 4 16.7909 4 19V21" stroke="rgba(207, 154, 52, 0.3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <circle cx="12" cy="7" r="4" stroke="rgba(207, 154, 52, 0.3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <!-- Decorative ring -->
+                        <div class="absolute -inset-3 rounded-full"
+                             style="border: 1px solid rgba(207, 154, 52, 0.08);">
+                        </div>
+                    </div>
+
+                    <!-- Label -->
+                    <div class="text-center">
+                        <span class="text-xs font-medium tracking-widest uppercase"
+                              style="color: rgba(207, 154, 52, 0.25);">
+                            Speaker / A-Roll
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Subtle decorative elements -->
+                <div class="absolute top-8 right-8 opacity-30">
+                    <div class="w-1 h-1 rounded-full" style="background: #CF9A34;"></div>
+                </div>
+                <div class="absolute bottom-12 right-12 opacity-20">
+                    <div class="w-1.5 h-1.5 rounded-full" style="background: #CF9A34;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

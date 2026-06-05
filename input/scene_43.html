@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube's Goal — Premium Card Mockup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Montserrat', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #150A01;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* --- Background layers --- */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 70% at 30% 50%, rgba(32, 15, 0, 0.55) 0%, transparent 70%),
+                radial-gradient(ellipse 50% 50% at 85% 30%, rgba(84, 42, 6, 0.12) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(207, 154, 52, 0.018) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(207, 154, 52, 0.018) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* --- Premium Card --- */
+        .premium-card {
+            background: linear-gradient(160deg, rgba(32, 15, 0, 0.93) 0%, rgba(21, 10, 1, 0.96) 100%);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1.5px solid rgba(207, 154, 52, 0.42);
+            border-radius: 22px;
+            box-shadow:
+                0 0 30px rgba(207, 154, 52, 0.22),
+                0 0 70px rgba(207, 154, 52, 0.07),
+                0 0 120px rgba(207, 154, 52, 0.035),
+                0 12px 48px rgba(0, 0, 0, 0.45),
+                inset 0 0 90px rgba(207, 154, 52, 0.035),
+                inset 0 1px 0 rgba(207, 154, 52, 0.18);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Diagonal lightsweep */
+        .premium-card::before {
+            content: '';
+            position: absolute;
+            top: -120%;
+            left: -120%;
+            width: 340%;
+            height: 340%;
+            background: linear-gradient(
+                135deg,
+                transparent 41%,
+                rgba(207, 154, 52, 0.025) 46%,
+                rgba(207, 154, 52, 0.065) 50%,
+                rgba(207, 154, 52, 0.025) 54%,
+                transparent 59%
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Top edge highlight */
+        .premium-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 28px;
+            right: 28px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(207, 154, 52, 0.45) 50%, transparent 100%);
+            z-index: 2;
+        }
+
+        .card-inner {
+            position: relative;
+            z-index: 3;
+        }
+
+        /* --- Glow Pulse --- */
+        @keyframes glowPulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 30px rgba(207, 154, 52, 0.22),
+                    0 0 70px rgba(207, 154, 52, 0.07),
+                    0 0 120px rgba(207, 154, 52, 0.035),
+                    0 12px 48px rgba(0, 0, 0, 0.45),
+                    inset 0 0 90px rgba(207, 154, 52, 0.035),
+                    inset 0 1px 0 rgba(207, 154, 52, 0.18);
+            }
+            50% {
+                box-shadow:
+                    0 0 40px rgba(207, 154, 52, 0.32),
+                    0 0 90px rgba(207, 154, 52, 0.1),
+                    0 0 140px rgba(207, 154, 52, 0.05),
+                    0 12px 48px rgba(0, 0, 0, 0.45),
+                    inset 0 0 110px rgba(207, 154, 52, 0.05),
+                    inset 0 1px 0 rgba(207, 154, 52, 0.25);
+            }
+        }
+        .premium-card { animation: glowPulse 5s ease-in-out infinite; }
+
+        /* --- Typography --- */
+        .title-glow {
+            color: #F6C71E;
+            text-shadow:
+                0 0 12px rgba(246, 199, 30, 0.55),
+                0 0 35px rgba(246, 199, 30, 0.2),
+                0 0 70px rgba(246, 199, 30, 0.08);
+        }
+
+        .keyword {
+            color: #E8973F;
+            font-weight: 700;
+            text-shadow: 0 0 12px rgba(232, 151, 63, 0.45);
+        }
+
+        /* --- Bullet dots --- */
+        .bullet-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 40% 40%, #CF9A34 15%, rgba(207, 154, 52, 0.35) 100%);
+            box-shadow: 0 0 8px rgba(207, 154, 52, 0.55), 0 0 18px rgba(207, 154, 52, 0.18);
+            flex-shrink: 0;
+        }
+
+        /* --- Dividers --- */
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(207, 154, 52, 0.38) 50%, transparent 100%);
+        }
+
+        /* --- YouTube icon box --- */
+        .yt-icon-box {
+            background: rgba(194, 20, 3, 0.14);
+            border: 1px solid rgba(194, 20, 3, 0.22);
+            border-radius: 14px;
+            box-shadow: 0 0 18px rgba(194, 20, 3, 0.18), 0 0 36px rgba(194, 20, 3, 0.06);
+        }
+
+        /* --- Time icon --- */
+        .time-icon { filter: drop-shadow(0 0 7px rgba(207, 154, 52, 0.45)); }
+
+        /* --- Quote section --- */
+        .quote-section {
+            border-left: 2px solid rgba(207, 154, 52, 0.22);
+            padding-left: 18px;
+        }
+
+        /* --- Ambient glow behind card --- */
+        .ambient-glow {
+            position: absolute;
+            width: 130%;
+            height: 130%;
+            top: -15%;
+            left: -15%;
+            background: radial-gradient(ellipse at center, rgba(207, 154, 52, 0.055) 0%, transparent 55%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* --- Decorative corner tick marks --- */
+        .corner-tick {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            z-index: 4;
+            pointer-events: none;
+        }
+        .corner-tick::before,
+        .corner-tick::after {
+            content: '';
+            position: absolute;
+            background: rgba(207, 154, 52, 0.5);
+        }
+        .corner-tick.tl { top: 8px; left: 8px; }
+        .corner-tick.tl::before { top: 0; left: 0; width: 22px; height: 1.5px; border-radius: 1px; }
+        .corner-tick.tl::after  { top: 0; left: 0; width: 1.5px; height: 22px; border-radius: 1px; }
+
+        .corner-tick.tr { top: 8px; right: 8px; }
+        .corner-tick.tr::before { top: 0; right: 0; width: 22px; height: 1.5px; border-radius: 1px; }
+        .corner-tick.tr::after  { top: 0; right: 0; width: 1.5px; height: 22px; border-radius: 1px; }
+
+        .corner-tick.bl { bottom: 8px; left: 8px; }
+        .corner-tick.bl::before { bottom: 0; left: 0; width: 22px; height: 1.5px; border-radius: 1px; }
+        .corner-tick.bl::after  { bottom: 0; left: 0; width: 1.5px; height: 22px; border-radius: 1px; }
+
+        .corner-tick.br { bottom: 8px; right: 8px; }
+        .corner-tick.br::before { bottom: 0; right: 0; width: 22px; height: 1.5px; border-radius: 1px; }
+        .corner-tick.br::after  { bottom: 0; right: 0; width: 1.5px; height: 22px; border-radius: 1px; }
+
+        /* --- Small decorative orb top-right of card --- */
+        .deco-orb {
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(207, 154, 52, 0.06) 0%, transparent 65%);
+            pointer-events: none;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== CARD WRAPPER ==================== -->
+    <div class="relative w-full max-w-[600px] mx-auto p-5 sm:p-8 z-10">
+
+        <!-- Ambient glow -->
+        <div class="ambient-glow"></div>
+
+        <!-- ===== PREMIUM CARD ===== -->
+        <div class="premium-card">
+
+            <!-- Corner tick marks -->
+            <div class="corner-tick tl"></div>
+            <div class="corner-tick tr"></div>
+            <div class="corner-tick bl"></div>
+            <div class="corner-tick br"></div>
+
+            <!-- Decorative orb -->
+            <div class="deco-orb"></div>
+
+            <!-- Card content -->
+            <div class="card-inner p-8 sm:p-10">
+
+                <!-- ---- HEADER ---- -->
+                <div class="flex items-center gap-4 mb-7">
+
+                    <!-- YouTube icon -->
+                    <div class="yt-icon-box flex-shrink-0 w-13 h-12 flex items-center justify-center"
+                         style="width:52px;height:48px;">
+                        <svg width="32" height="22" viewBox="0 0 48 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="48" height="34" rx="8" fill="#C21403"/>
+                            <path d="M19 24L34 17L19 10V24Z" fill="white"/>
+                        </svg>
+                    </div>
+
+                    <!-- Title -->
+                    <h1 class="title-glow text-[1.65rem] sm:text-3xl font-black tracking-[0.1em] uppercase leading-tight">
+                        YouTube's Goal
+                    </h1>
+                </div>
+
+                <!-- ---- DIVIDER ---- -->
+                <div class="divider mb-8"></div>
+
+                <!-- ---- BULLET POINTS ---- -->
+                <div class="space-y-6 mb-8">
+
+                    <!-- Bullet 1 -->
+                    <div class="flex items-start gap-4">
+                        <div class="bullet-dot" style="margin-top:10px;"></div>
+                        <p class="text-white text-base sm:text-lg font-medium leading-relaxed">
+                            Keep viewers on platform&nbsp;<span class="keyword">longer</span>
+                        </p>
+                    </div>
+
+                    <!-- Bullet 2 -->
+                    <div class="flex items-start gap-4">
+                        <div class="bullet-dot" style="margin-top:10px;"></div>
+                        <p class="text-white text-base sm:text-lg font-medium leading-relaxed">
+                            <span class="keyword">Strong hooks</span>&nbsp;achieve this
+                        </p>
+                    </div>
+                </div>
+
+                <!-- ---- DIVIDER ---- -->
+                <div class="divider mb-8"></div>
+
+                <!-- ---- QUOTE SECTION ---- -->
+                <div class="quote-section flex items-start gap-4">
+
+                    <!-- Time icon -->
+                    <div class="flex-shrink-0 mt-0.5">
+                        <svg class="time-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="10" stroke="#CF9A34" stroke-width="1.5"/>
+                            <path d="M12 6V12L16 14.5" stroke="#CF9A34" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="12" cy="12" r="1" fill="#CF9A34" opacity="0.6"/>
+                        </svg>
+                    </div>
+
+                    <!-- Quote text -->
+                    <p class="text-white/80 text-sm sm:text-[0.95rem] italic leading-[1.8] font-normal">
+                        &ldquo;Because at the end of the day, YouTube wants people to actually stay on the platform
+                        <span class="keyword not-italic font-semibold">longer</span>, and
+                        <span class="keyword not-italic font-semibold">strong hooks</span>
+                        end up making that happen.&rdquo;
+                    </p>
+                </div>
+
+            </div><!-- /card-inner -->
+        </div><!-- /premium-card -->
+    </div><!-- /wrapper -->
+
+</body>
+</html>

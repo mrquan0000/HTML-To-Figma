@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FREE 7-DAY ACCESS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-warm-orange': '#E8973F',
+                        'brand-deep-orange': '#D36708',
+                        'brand-dark-glow': '#200F00',
+                        'brand-yellow': '#F6C71E',
+                        'brand-gray-glass': '#A9ADB1',
+                        'brand-black': '#150A01',
+                        'brand-wood': '#542A06',
+                        'brand-red': '#C21403',
+                        'brand-neon-gold': '#CF9A34',
+                        'brand-green': '#35CC23',
+                    },
+                    fontFamily: {
+                        'montserrat': ['Montserrat', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #150A01;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+
+        /* Neon glow border animation */
+        @keyframes neonPulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 10px rgba(207, 154, 52, 0.4),
+                    0 0 20px rgba(207, 154, 52, 0.25),
+                    0 0 40px rgba(207, 154, 52, 0.15),
+                    inset 0 0 15px rgba(207, 154, 52, 0.05);
+            }
+            50% {
+                box-shadow:
+                    0 0 15px rgba(207, 154, 52, 0.6),
+                    0 0 30px rgba(207, 154, 52, 0.35),
+                    0 0 60px rgba(207, 154, 52, 0.2),
+                    inset 0 0 20px rgba(207, 154, 52, 0.08);
+            }
+        }
+
+        /* Card slide-in animation */
+        @keyframes slideInLeft {
+            0% {
+                transform: translateX(-120%);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Text fade-in stagger */
+        @keyframes fadeInUp {
+            0% {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Glow text animation */
+        @keyframes textGlow {
+            0%, 100% {
+                text-shadow:
+                    0 0 8px rgba(246, 199, 30, 0.5),
+                    0 0 16px rgba(246, 199, 30, 0.3),
+                    0 0 32px rgba(246, 199, 30, 0.15);
+            }
+            50% {
+                text-shadow:
+                    0 0 12px rgba(246, 199, 30, 0.7),
+                    0 0 24px rgba(246, 199, 30, 0.45),
+                    0 0 48px rgba(246, 199, 30, 0.2);
+            }
+        }
+
+        /* Green glow text */
+        @keyframes greenGlow {
+            0%, 100% {
+                text-shadow:
+                    0 0 8px rgba(53, 204, 35, 0.5),
+                    0 0 16px rgba(53, 204, 35, 0.3);
+            }
+            50% {
+                text-shadow:
+                    0 0 12px rgba(53, 204, 35, 0.7),
+                    0 0 24px rgba(53, 204, 35, 0.45);
+            }
+        }
+
+        /* Lightsweep effect */
+        @keyframes lightsweep {
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        /* Icon float */
+        @keyframes iconFloat {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-4px);
+            }
+        }
+
+        .card-container {
+            animation: slideInLeft 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 1;
+        }
+
+        .fade-item-1 {
+            animation: fadeInUp 0.6s ease-out 0.6s forwards;
+            opacity: 1;
+        }
+        .fade-item-2 {
+            animation: fadeInUp 0.6s ease-out 0.8s forwards;
+            opacity: 1;
+        }
+        .fade-item-3 {
+            animation: fadeInUp 0.6s ease-out 1.0s forwards;
+            opacity: 1;
+        }
+        .fade-item-4 {
+            animation: fadeInUp 0.6s ease-out 1.2s forwards;
+            opacity: 1;
+        }
+        .fade-item-5 {
+            animation: fadeInUp 0.6s ease-out 1.4s forwards;
+            opacity: 1;
+        }
+        .fade-item-6 {
+            animation: fadeInUp 0.6s ease-out 1.6s forwards;
+            opacity: 1;
+        }
+        .fade-item-7 {
+            animation: fadeInUp 0.6s ease-out 1.8s forwards;
+            opacity: 1;
+        }
+
+        .glass-card {
+            background: rgba(32, 15, 0, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1.5px solid rgba(207, 154, 52, 0.5);
+            border-radius: 24px;
+            animation: neonPulse 3s ease-in-out infinite;
+        }
+
+        /* Lightsweep overlay */
+        .lightsweep::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                105deg,
+                transparent 40%,
+                rgba(207, 154, 52, 0.06) 45%,
+                rgba(246, 199, 30, 0.1) 50%,
+                rgba(207, 154, 52, 0.06) 55%,
+                transparent 60%
+            );
+            background-size: 200% 100%;
+            animation: lightsweep 4s ease-in-out infinite;
+            pointer-events: none;
+            border-radius: 24px;
+        }
+
+        .title-text {
+            animation: textGlow 3s ease-in-out infinite;
+        }
+
+        .green-text {
+            animation: greenGlow 3s ease-in-out infinite;
+        }
+
+        .icon-float {
+            animation: iconFloat 3s ease-in-out infinite;
+        }
+
+        .bullet-dot {
+            box-shadow: 0 0 8px rgba(207, 154, 52, 0.6);
+        }
+
+        /* Speaker silhouette placeholder */
+        .speaker-area {
+            background: linear-gradient(135deg, #150A01 0%, #200F00 50%, #150A01 100%);
+        }
+
+        /* Subtle noise texture */
+        .noise-texture::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
+        /* Accent line decoration */
+        .accent-line {
+            background: linear-gradient(90deg, #CF9A34, #F6C71E, #CF9A34);
+            box-shadow: 0 0 8px rgba(207, 154, 52, 0.4);
+        }
+    </style>
+</head>
+<body class="font-montserrat">
+
+    <!-- Full Split Grid Layout -->
+    <div class="relative w-full h-screen flex overflow-hidden noise-texture">
+
+        <!-- LEFT HALF — Card Area -->
+        <div class="relative w-full lg:w-1/2 h-full flex items-center justify-center p-6 lg:p-10" style="background: #150A01;">
+
+            <!-- Ambient glow behind card -->
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full opacity-20"
+                 style="background: radial-gradient(circle, rgba(207,154,52,0.3) 0%, transparent 70%);"></div>
+            <div class="absolute top-1/3 left-1/4 w-40 h-40 rounded-full opacity-10"
+                 style="background: radial-gradient(circle, rgba(246,199,30,0.4) 0%, transparent 70%);"></div>
+
+            <!-- THE CARD -->
+            <div class="card-container glass-card lightsweep relative w-full max-w-[520px] p-8 lg:p-10 z-10">
+
+                <!-- Gift Icon Badge -->
+                <div class="fade-item-1 flex items-center gap-3 mb-6">
+                    <div class="icon-float flex items-center justify-center w-14 h-14 rounded-2xl"
+                         style="background: linear-gradient(135deg, #542A06 0%, #200F00 100%);
+                                border: 1px solid rgba(207, 154, 52, 0.35);
+                                box-shadow: 0 0 12px rgba(207, 154, 52, 0.2);">
+                        <!-- Gift SVG Icon -->
+                        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 12V22H4V12" stroke="#F6C71E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M22 7H2V12H22V7Z" stroke="#F6C71E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M12 22V7" stroke="#F6C71E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M12 7H7.5C6.83696 7 6.20107 6.73661 5.73223 6.26777C5.26339 5.79893 5 5.16304 5 4.5C5 3.83696 5.26339 3.20107 5.73223 2.73223C6.20107 2.26339 6.83696 2 7.5 2C11 2 12 7 12 7Z" stroke="#F6C71E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M12 7H16.5C17.163 7 17.7989 6.73661 18.2678 6.26777C18.7366 5.79893 19 5.16304 19 4.5C19 3.83696 18.7366 3.20107 18.2678 2.73223C17.7989 2.26339 17.163 2 16.5 2C13 2 12 7 12 7Z" stroke="#F6C71E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <span class="text-brand-neon-gold text-xs font-semibold tracking-[0.2em] uppercase opacity-80">Exclusive Offer</span>
+                </div>
+
+                <!-- Decorative accent line -->
+                <div class="fade-item-1 accent-line w-16 h-[2px] rounded-full mb-5"></div>
+
+                <!-- Title -->
+                <h1 class="fade-item-2 title-text text-3xl lg:text-4xl font-black text-brand-yellow leading-tight tracking-tight mb-2 uppercase">
+                    FREE 7-DAY ACCESS
+                </h1>
+
+                <!-- Subtitle -->
+                <p class="fade-item-2 text-brand-gray-glass text-sm font-medium mb-7 leading-relaxed opacity-80">
+                    Unlock everything you need to grow your channel faster
+                </p>
+
+                <!-- Bullet Points -->
+                <div class="fade-item-3 space-y-4 mb-8">
+                    <!-- Bullet 1 -->
+                    <div class="flex items-center gap-4 group">
+                        <div class="flex-shrink-0 w-2.5 h-2.5 rounded-full bullet-dot" style="background: #CF9A34;"></div>
+                        <div class="flex items-center gap-3">
+                            <!-- YouTube/play icon -->
+                            <svg class="w-5 h-5 flex-shrink-0 opacity-80" viewBox="0 0 24 24" fill="none">
+                                <path d="M22.54 6.42C22.4212 5.94541 22.1793 5.51057 21.8387 5.15941C21.498 4.80824 21.0708 4.55318 20.6 4.42C18.88 4 12 4 12 4C12 4 5.12 4 3.4 4.46C2.92925 4.59318 2.50198 4.84824 2.16135 5.19941C1.82072 5.55057 1.57879 5.98541 1.46 6.46C1.14521 8.20556 0.991235 9.97631 1 11.75C0.988687 13.537 1.14266 15.3213 1.46 17.08C1.59096 17.5398 1.83831 17.9581 2.17814 18.2945C2.51798 18.6308 2.93882 18.8738 3.4 19C5.12 19.46 12 19.46 12 19.46C12 19.46 18.88 19.46 20.6 19C21.0708 18.8668 21.498 18.6118 21.8387 18.2606C22.1793 17.9094 22.4212 17.4746 22.54 17C22.8524 15.2676 23.0064 13.5103 23 11.75C23.0113 9.96295 22.8573 8.1787 22.54 6.42Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M9.75 15.02L15.5 11.75L9.75 8.48V15.02Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span class="text-white text-base lg:text-lg font-semibold">YouTube Growth Course</span>
+                        </div>
+                    </div>
+
+                    <!-- Bullet 2 -->
+                    <div class="flex items-center gap-4 group">
+                        <div class="flex-shrink-0 w-2.5 h-2.5 rounded-full bullet-dot" style="background: #CF9A34;"></div>
+                        <div class="flex items-center gap-3">
+                            <!-- Strategy/chart icon -->
+                            <svg class="w-5 h-5 flex-shrink-0 opacity-80" viewBox="0 0 24 24" fill="none">
+                                <path d="M21 21H3V3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M21 7L13 15L9 11L3 17" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M21 3V7H17" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span class="text-white text-base lg:text-lg font-semibold">Strategies</span>
+                        </div>
+                    </div>
+
+                    <!-- Bullet 3 -->
+                    <div class="flex items-center gap-4 group">
+                        <div class="flex-shrink-0 w-2.5 h-2.5 rounded-full bullet-dot" style="background: #CF9A34;"></div>
+                        <div class="flex items-center gap-3">
+                            <!-- Feedback/chat icon -->
+                            <svg class="w-5 h-5 flex-shrink-0 opacity-80" viewBox="0 0 24 24" fill="none">
+                                <path d="M21 11.5C21.0034 12.8199 20.6951 14.1219 20.1 15.3C19.3944 16.7118 18.3098 17.8992 16.9674 18.7293C15.6251 19.5594 14.0782 19.9994 12.5 20C11.1801 20.0035 9.87812 19.6951 8.7 19.1L3 21L4.9 15.3C4.30493 14.1219 3.99656 12.8199 4 11.5C4.00061 9.92179 4.44061 8.37488 5.27072 7.03258C6.10083 5.69028 7.28825 4.6056 8.7 3.90003C9.87812 3.30496 11.1801 2.99659 12.5 3.00003H13C15.0843 3.11502 17.053 3.99479 18.5291 5.47089C20.0052 6.94699 20.885 8.91568 21 11V11.5Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span class="text-white text-base lg:text-lg font-semibold">Feedback</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="fade-item-4 w-full h-px mb-7" style="background: linear-gradient(90deg, transparent, rgba(207,154,52,0.3), transparent);"></div>
+
+                <!-- Community CTA -->
+                <div class="fade-item-5 flex items-center gap-4 mb-5">
+                    <!-- Community Icon -->
+                    <div class="icon-float flex items-center justify-center w-12 h-12 rounded-xl"
+                         style="background: rgba(53, 204, 35, 0.12);
+                                border: 1px solid rgba(53, 204, 35, 0.25);">
+                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                            <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="#35CC23" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="9" cy="7" r="4" stroke="#35CC23" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13" stroke="#35CC23" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="#35CC23" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h2 class="green-text text-xl lg:text-2xl font-extrabold text-brand-green uppercase tracking-wide">
+                        Join the Community!
+                    </h2>
+                </div>
+
+                <!-- CTA Button -->
+                <div class="fade-item-6">
+                    <button class="relative w-full py-4 rounded-xl font-bold text-base tracking-wide uppercase overflow-hidden group transition-all duration-300 cursor-pointer"
+                            style="background: linear-gradient(135deg, #CF9A34 0%, #E8973F 50%, #F6C71E 100%);
+                                   color: #150A01;
+                                   box-shadow: 0 4px 20px rgba(207, 154, 52, 0.35), 0 0 40px rgba(207, 154, 52, 0.15);">
+                        <span class="relative z-10 flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                                <path d="M10 13C10.4295 13.5741 10.9774 14.0492 11.6066 14.3929C12.2357 14.7367 12.9315 14.9411 13.6467 14.9924C14.3618 15.0436 15.0796 14.9404 15.7513 14.6898C16.4231 14.4392 17.0331 14.047 17.54 13.54L20.54 10.54C21.4508 9.59699 21.9548 8.33398 21.9434 7.02299C21.932 5.71199 21.4061 4.45798 20.479 3.53098C19.552 2.60398 18.298 2.07798 16.987 2.06698C15.676 2.05498 14.413 2.55898 13.47 3.46998L11.75 5.17998" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M14 11C13.5705 10.4259 13.0226 9.95083 12.3934 9.60707C11.7642 9.26331 11.0685 9.05889 10.3533 9.00764C9.63816 8.95639 8.92037 9.05963 8.24861 9.31023C7.57685 9.56083 6.96684 9.95299 6.45996 10.46L3.45996 13.46C2.54917 14.403 2.04519 15.666 2.05659 16.977C2.06799 18.288 2.59395 19.542 3.52096 20.469C4.44796 21.396 5.70197 21.922 7.01297 21.933C8.32396 21.944 9.58697 21.44 10.53 20.53L12.24 18.82" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Get Free Access Now
+                        </span>
+                    </button>
+                </div>
+
+                <!-- Disclaimer -->
+                <p class="fade-item-7 text-center text-xs mt-4 opacity-40" style="color: #A9ADB1;">
+                    Limited time only · No credit card required
+                </p>
+            </div>
+        </div>
+
+        <!-- RIGHT HALF — Speaker/A-roll Placeholder -->
+        <div class="hidden lg:flex w-1/2 h-full speaker-area relative items-end justify-center overflow-hidden">
+
+            <!-- Ambient warm light from left card bleeding over -->
+            <div class="absolute top-1/2 left-0 w-60 h-96 -translate-y-1/2 opacity-15"
+                 style="background: radial-gradient(ellipse at left, rgba(207,154,52,0.4) 0%, transparent 70%);"></div>
+
+            <!-- Speaker silhouette placeholder -->
+            <div class="relative z-10 flex flex-col items-center justify-end h-full pb-12 opacity-60">
+                <!-- Abstract person silhouette -->
+                <svg class="w-48 h-72 mb-4 opacity-30" viewBox="0 0 200 300" fill="none">
+                    <ellipse cx="100" cy="70" rx="45" ry="50" fill="#542A06" opacity="0.5"/>
+                    <path d="M30 300C30 210 60 170 100 160C140 170 170 210 170 300" fill="#542A06" opacity="0.4"/>
+                </svg>
+                <span class="text-xs font-medium tracking-widest uppercase opacity-30" style="color: #A9ADB1;">Speaker · A-Roll</span>
+            </div>
+
+            <!-- Subtle vignette -->
+            <div class="absolute inset-0"
+                 style="background: linear-gradient(90deg, rgba(21,10,1,0.6) 0%, transparent 30%, transparent 100%);"></div>
+        </div>
+
+    </div>
+
+</body>
+</html>

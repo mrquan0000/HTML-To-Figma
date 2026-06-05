@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategy #3 - Mastering Packaging</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            orange: '#E8973F',
+                            deepOrange: '#D36708',
+                            darkBg: '#200F00',
+                            yellow: '#F6C71E',
+                            glassGray: '#A9ADB1',
+                            specialBlack: '#150A01',
+                            wood: '#542A06',
+                            red: '#C21403',
+                            neonGold: '#CF9A34',
+                            green: '#35CC23',
+                        }
+                    },
+                    fontFamily: {
+                        heading: ['Montserrat', 'sans-serif'],
+                        body: ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+            background: #000000;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Simulated dimmed video background */
+        .video-background {
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse 300px 400px at 50% 55%, rgba(84, 42, 6, 0.35) 0%, transparent 70%),
+                radial-gradient(ellipse 200px 300px at 50% 50%, rgba(232, 151, 63, 0.08) 0%, transparent 60%),
+                linear-gradient(180deg, #0a0500 0%, #150A01 40%, #200F00 70%, #0a0500 100%);
+            filter: brightness(0.5) blur(1px);
+        }
+
+        /* Speaker silhouette placeholder */
+        .speaker-silhouette {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 340px;
+            height: 420px;
+            background: radial-gradient(ellipse at 50% 30%, rgba(84, 42, 6, 0.4) 0%, transparent 65%);
+            clip-path: polygon(35% 0%, 65% 0%, 70% 15%, 72% 30%, 68% 45%, 75% 50%, 85% 65%, 100% 100%, 0% 100%, 15% 65%, 25% 50%, 32% 45%, 28% 30%, 30% 15%);
+            opacity: 0.6;
+        }
+
+        .speaker-glow {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 500px;
+            height: 300px;
+            background: radial-gradient(ellipse at 50% 100%, rgba(207, 154, 52, 0.06) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        /* Card container */
+        .card-wrapper {
+            animation: cardPopUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: scale(0.7) translateY(20px);
+        }
+
+        @keyframes cardPopUp {
+            0% {
+                opacity: 0;
+                transform: scale(0.7) translateY(20px);
+                filter: blur(8px);
+            }
+            50% {
+                opacity: 0.8;
+                filter: blur(2px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+                filter: blur(0);
+            }
+        }
+
+        /* Glassmorphism card */
+        .glass-card {
+            background: linear-gradient(
+                165deg,
+                rgba(32, 15, 0, 0.92) 0%,
+                rgba(32, 15, 0, 0.85) 40%,
+                rgba(21, 10, 1, 0.9) 100%
+            );
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(207, 154, 52, 0.3);
+            box-shadow:
+                0 0 30px rgba(207, 154, 52, 0.15),
+                0 0 60px rgba(207, 154, 52, 0.08),
+                0 0 100px rgba(207, 154, 52, 0.04),
+                0 25px 50px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(207, 154, 52, 0.15),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+            animation: glowPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes glowPulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 30px rgba(207, 154, 52, 0.15),
+                    0 0 60px rgba(207, 154, 52, 0.08),
+                    0 0 100px rgba(207, 154, 52, 0.04),
+                    0 25px 50px rgba(0, 0, 0, 0.5),
+                    inset 0 1px 0 rgba(207, 154, 52, 0.15),
+                    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+            }
+            50% {
+                box-shadow:
+                    0 0 40px rgba(207, 154, 52, 0.25),
+                    0 0 80px rgba(207, 154, 52, 0.12),
+                    0 0 120px rgba(207, 154, 52, 0.06),
+                    0 25px 50px rgba(0, 0, 0, 0.5),
+                    inset 0 1px 0 rgba(207, 154, 52, 0.2),
+                    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+            }
+        }
+
+        /* Neon border effect */
+        .neon-border {
+            position: relative;
+        }
+
+        .neon-border::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 22px;
+            background: linear-gradient(
+                135deg,
+                rgba(207, 154, 52, 0.6) 0%,
+                rgba(246, 199, 30, 0.3) 25%,
+                rgba(207, 154, 52, 0.1) 50%,
+                rgba(246, 199, 30, 0.3) 75%,
+                rgba(207, 154, 52, 0.6) 100%
+            );
+            z-index: -1;
+            animation: borderGlow 3s ease-in-out infinite;
+            filter: blur(1px);
+        }
+
+        @keyframes borderGlow {
+            0%, 100% {
+                opacity: 0.5;
+                filter: blur(1px);
+            }
+            50% {
+                opacity: 0.8;
+                filter: blur(2px);
+            }
+        }
+
+        /* Lightsweep effect on top edge */
+        .lightsweep {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lightsweep::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(207, 154, 52, 0.06) 40%,
+                rgba(246, 199, 30, 0.1) 50%,
+                rgba(207, 154, 52, 0.06) 60%,
+                transparent 100%
+            );
+            animation: lightsweep 4s ease-in-out 1s infinite;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        @keyframes lightsweep {
+            0% {
+                left: -100%;
+            }
+            100% {
+                left: 200%;
+            }
+        }
+
+        /* Title glow effect */
+        .title-glow {
+            text-shadow:
+                0 0 10px rgba(246, 199, 30, 0.4),
+                0 0 20px rgba(246, 199, 30, 0.2),
+                0 0 40px rgba(246, 199, 30, 0.1);
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% {
+                text-shadow:
+                    0 0 10px rgba(246, 199, 30, 0.4),
+                    0 0 20px rgba(246, 199, 30, 0.2),
+                    0 0 40px rgba(246, 199, 30, 0.1);
+            }
+            50% {
+                text-shadow:
+                    0 0 15px rgba(246, 199, 30, 0.6),
+                    0 0 30px rgba(246, 199, 30, 0.3),
+                    0 0 60px rgba(246, 199, 30, 0.15);
+            }
+        }
+
+        /* Number icon container */
+        .icon-container {
+            background: linear-gradient(135deg, rgba(207, 154, 52, 0.15) 0%, rgba(246, 199, 30, 0.08) 100%);
+            border: 1px solid rgba(207, 154, 52, 0.3);
+            box-shadow: 0 0 15px rgba(207, 154, 52, 0.1);
+        }
+
+        /* Subtle floating particles */
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            border-radius: 50%;
+            background: rgba(207, 154, 52, 0.3);
+            animation: floatParticle 6s ease-in-out infinite;
+        }
+
+        @keyframes floatParticle {
+            0%, 100% {
+                transform: translateY(0) scale(1);
+                opacity: 0.3;
+            }
+            50% {
+                transform: translateY(-20px) scale(1.5);
+                opacity: 0.6;
+            }
+        }
+
+        /* Quote line accent */
+        .quote-line {
+            background: linear-gradient(
+                180deg,
+                rgba(207, 154, 52, 0) 0%,
+                rgba(207, 154, 52, 0.6) 20%,
+                rgba(246, 199, 30, 0.8) 50%,
+                rgba(207, 154, 52, 0.6) 80%,
+                rgba(207, 154, 52, 0) 100%
+            );
+            box-shadow: 0 0 8px rgba(207, 154, 52, 0.3);
+        }
+
+        /* Staggered fade in */
+        .fade-in-1 { animation: fadeSlideUp 0.6s 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+        .fade-in-2 { animation: fadeSlideUp 0.6s 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+        .fade-in-3 { animation: fadeSlideUp 0.6s 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+        .fade-in-4 { animation: fadeSlideUp 0.6s 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+
+        @keyframes fadeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Glass separator line */
+        .glass-separator {
+            height: 1px;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(207, 154, 52, 0.3) 20%,
+                rgba(207, 154, 52, 0.5) 50%,
+                rgba(207, 154, 52, 0.3) 80%,
+                transparent 100%
+            );
+        }
+
+        /* Subtle background texture dots */
+        .bg-texture {
+            background-image: radial-gradient(
+                rgba(207, 154, 52, 0.03) 1px,
+                transparent 1px
+            );
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+    <!-- Simulated dimmed video background -->
+    <div class="video-background"></div>
+
+    <!-- Speaker silhouette area -->
+    <div class="speaker-silhouette"></div>
+    <div class="speaker-glow"></div>
+
+    <!-- Floating ambient particles -->
+    <div class="particle" style="top: 20%; left: 30%; animation-delay: 0s;"></div>
+    <div class="particle" style="top: 35%; left: 65%; animation-delay: 1.5s;"></div>
+    <div class="particle" style="top: 55%; left: 40%; animation-delay: 3s;"></div>
+    <div class="particle" style="top: 25%; left: 55%; animation-delay: 2s;"></div>
+    <div class="particle" style="top: 45%; left: 35%; animation-delay: 4s;"></div>
+    <div class="particle" style="top: 60%; left: 60%; animation-delay: 1s;"></div>
+
+    <!-- Main Card -->
+    <div class="card-wrapper relative z-10 w-full max-w-[600px] mx-4">
+        <div class="glass-card neon-border lightsweep rounded-[20px] p-8 sm:p-10 relative">
+
+            <!-- Top decorative bar -->
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-[2px] rounded-full bg-gradient-to-r from-transparent via-[#CF9A34] to-transparent opacity-60"></div>
+
+            <!-- Header: Icon + Badge -->
+            <div class="fade-in-1 flex items-center justify-between mb-6">
+                <!-- Number 3 Icon -->
+                <div class="icon-container flex items-center justify-center w-14 h-14 rounded-2xl">
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <text x="50%" y="52%" text-anchor="middle" dominant-baseline="central" 
+                              font-family="Montserrat, sans-serif" font-weight="800" font-size="22" 
+                              fill="#F6C71E" filter="url(#numGlow)">3</text>
+                        <defs>
+                            <filter id="numGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                                <feMerge>
+                                    <feMergeNode in="blur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                        </defs>
+                    </svg>
+                </div>
+
+                <!-- Strategy Badge -->
+                <div class="flex items-center gap-2 px-4 py-1.5 rounded-full border border-[rgba(207,154,52,0.25)] bg-[rgba(207,154,52,0.08)]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#F6C71E] animate-pulse"></span>
+                    <span class="text-[#CF9A34] text-xs font-heading font-semibold tracking-[0.15em] uppercase">Strategy</span>
+                </div>
+            </div>
+
+            <!-- Title Section -->
+            <div class="fade-in-2 mb-2">
+                <h1 class="font-heading font-extrabold text-3xl sm:text-4xl tracking-tight title-glow text-[#F6C71E] leading-tight">
+                    STRATEGY #3
+                </h1>
+            </div>
+
+            <div class="fade-in-2 mb-6">
+                <h2 class="font-heading font-semibold text-xl sm:text-2xl text-white/95 tracking-wide leading-snug">
+                    Mastering Packaging
+                </h2>
+            </div>
+
+            <!-- Box Icon + Decorative element -->
+            <div class="fade-in-2 flex items-center gap-3 mb-6">
+                <div class="icon-container flex items-center justify-center w-10 h-10 rounded-xl">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F6C71E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                        <path d="m3.3 7 8.7 5 8.7-5"/>
+                        <path d="M12 22V12"/>
+                    </svg>
+                </div>
+                <div class="glass-separator flex-1 opacity-40"></div>
+            </div>
+
+            <!-- Quote Section -->
+            <div class="fade-in-3 relative">
+                <!-- Quote accent line -->
+                <div class="absolute left-0 top-1 bottom-1 w-[3px] quote-line rounded-full"></div>
+
+                <blockquote class="pl-5 sm:pl-6">
+                    <p class="font-body text-base sm:text-lg text-[#A9ADB1] leading-relaxed tracking-wide">
+                        "<span class="text-white/95 font-medium">And once I figure out the audience part,</span> the next thing that <span class="text-[#F6C71E] font-semibold">changed everything</span> was the <span class="text-[#E8973F] font-semibold">packaging</span>, which is strategy number <span class="text-[#F6C71E] font-bold">three</span>."
+                    </p>
+                </blockquote>
+            </div>
+
+            <!-- Bottom decorative section -->
+            <div class="fade-in-4 mt-7 flex items-center justify-between">
+                <div class="glass-separator flex-1 opacity-30"></div>
+                <div class="mx-4 flex items-center gap-2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#CF9A34" stroke-width="2" stroke-linecap="round" opacity="0.5">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                    <span class="text-[#542A06] text-[10px] font-heading font-semibold tracking-[0.2em] uppercase">Key Insight</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#CF9A34" stroke-width="2" stroke-linecap="round" opacity="0.5">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                </div>
+                <div class="glass-separator flex-1 opacity-30"></div>
+            </div>
+
+            <!-- Bottom ambient glow -->
+            <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-[rgba(207,154,52,0.25)] to-transparent"></div>
+        </div>
+
+        <!-- Outer glow effect behind card -->
+        <div class="absolute inset-0 -z-10 rounded-[22px]" 
+             style="background: radial-gradient(ellipse at 50% 50%, rgba(207, 154, 52, 0.08) 0%, transparent 70%); 
+                    filter: blur(30px); 
+                    animation: glowPulse 3s ease-in-out infinite;">
+        </div>
+    </div>
+
+</body>
+</html>

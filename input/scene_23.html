@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training The Algorithm — Card Mockup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            warmAccent: '#E8973F',
+                            deepOrange: '#D36708',
+                            darkGlow: '#200F00',
+                            brightYellow: '#F6C71E',
+                            frostedGray: '#A9ADB1',
+                            deepBlack: '#150A01',
+                            warmWood: '#542A06',
+                            redEmphasis: '#C21403',
+                            black: '#000000',
+                            white: '#FFFFFF',
+                            neonGold: '#CF9A34',
+                            positiveGreen: '#35CC23',
+                        }
+                    },
+                    fontFamily: {
+                        montserrat: ['Montserrat', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #000000;
+        }
+
+        /* Glassmorphism card */
+        .glass-card {
+            background: linear-gradient(135deg, rgba(32, 15, 0, 0.85) 0%, rgba(32, 15, 0, 0.65) 100%);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1.5px solid rgba(207, 154, 52, 0.5);
+            border-radius: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 26px;
+            background: linear-gradient(
+                135deg,
+                rgba(207, 154, 52, 0.6) 0%,
+                rgba(207, 154, 52, 0.1) 30%,
+                rgba(207, 154, 52, 0.05) 50%,
+                rgba(207, 154, 52, 0.15) 70%,
+                rgba(207, 154, 52, 0.5) 100%
+            );
+            z-index: -1;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            padding: 2px;
+        }
+
+        /* Neon glow shadow */
+        .neon-glow {
+            box-shadow:
+                0 0 20px rgba(207, 154, 52, 0.25),
+                0 0 60px rgba(207, 154, 52, 0.1),
+                0 0 100px rgba(207, 154, 52, 0.05),
+                0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Title glow */
+        .title-glow {
+            text-shadow:
+                0 0 20px rgba(246, 199, 30, 0.5),
+                0 0 40px rgba(246, 199, 30, 0.2),
+                0 0 80px rgba(246, 199, 30, 0.1);
+        }
+
+        /* Keyword glow */
+        .keyword-glow {
+            text-shadow:
+                0 0 12px rgba(232, 151, 63, 0.6),
+                0 0 24px rgba(232, 151, 63, 0.3);
+        }
+
+        /* Lightsweep effect on card */
+        .lightsweep {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lightsweep::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(207, 154, 52, 0.06) 40%,
+                rgba(207, 154, 52, 0.12) 50%,
+                rgba(207, 154, 52, 0.06) 60%,
+                transparent 100%
+            );
+            animation: lightsweep 4s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        @keyframes lightsweep {
+            0% { left: -100%; }
+            50% { left: 150%; }
+            100% { left: 150%; }
+        }
+
+        /* Subtle ambient glow on background */
+        .ambient-glow {
+            position: relative;
+        }
+
+        .ambient-glow::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 30%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(207, 154, 52, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Bullet dot styling */
+        .bullet-dot {
+            width: 8px;
+            height: 8px;
+            min-width: 8px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #CF9A34 0%, #E8973F 100%);
+            box-shadow: 0 0 8px rgba(207, 154, 52, 0.5);
+            margin-top: 8px;
+        }
+
+        /* Icon container */
+        .icon-container {
+            background: linear-gradient(135deg, rgba(207, 154, 52, 0.15) 0%, rgba(207, 154, 52, 0.05) 100%);
+            border: 1px solid rgba(207, 154, 52, 0.25);
+            border-radius: 14px;
+            backdrop-filter: blur(8px);
+        }
+
+        /* Speaker silhouette area */
+        .speaker-area {
+            background: linear-gradient(180deg, rgba(21, 10, 1, 0.3) 0%, rgba(21, 10, 1, 0.95) 100%);
+        }
+
+        /* Decorative line */
+        .deco-line {
+            background: linear-gradient(90deg, rgba(207, 154, 52, 0.6) 0%, rgba(207, 154, 52, 0.0) 100%);
+            height: 1px;
+        }
+
+        /* Subtle card inner border glow */
+        .inner-glow {
+            box-shadow:
+                inset 0 1px 0 rgba(207, 154, 52, 0.15),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-[600px] relative">
+        
+        <!-- Main Container: Split Grid Layout -->
+        <div class="flex rounded-3xl overflow-hidden neon-glow" style="min-height: 480px; background: #150A01;">
+            
+            <!-- LEFT HALF: Dark background with Card -->
+            <div class="w-[55%] relative ambient-glow" style="background: #150A01;">
+                
+                <!-- Card positioned on the left half -->
+                <div class="glass-card lightsweep neon-glow inner-glow p-7 m-5 relative z-10">
+                    
+                    <!-- Icon Row -->
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="icon-container w-10 h-10 flex items-center justify-center">
+                            <!-- Robot Icon -->
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="4" y="8" width="16" height="12" rx="3" stroke="#CF9A34" stroke-width="1.8" fill="rgba(207,154,52,0.08)"/>
+                                <circle cx="9" cy="14" r="1.5" fill="#E8973F"/>
+                                <circle cx="15" cy="14" r="1.5" fill="#E8973F"/>
+                                <path d="M10 17.5h4" stroke="#F6C71E" stroke-width="1.5" stroke-linecap="round"/>
+                                <path d="M12 5V8" stroke="#CF9A34" stroke-width="1.8" stroke-linecap="round"/>
+                                <circle cx="12" cy="4" r="1.2" fill="#CF9A34"/>
+                                <path d="M2 13h2M20 13h2" stroke="#CF9A34" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <div class="icon-container w-10 h-10 flex items-center justify-center">
+                            <!-- Confidence / Trending Up Icon -->
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 17l6-6 4 4 8-8" stroke="#35CC23" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M17 7h4v4" stroke="#35CC23" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M3 20h18" stroke="rgba(207,154,52,0.2)" stroke-width="1" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Title -->
+                    <h1 class="title-glow font-extrabold text-xl tracking-wide leading-tight mb-1" style="color: #F6C71E;">
+                        TRAINING THE<br>ALGORITHM
+                    </h1>
+
+                    <!-- Decorative Line -->
+                    <div class="deco-line w-full my-4"></div>
+
+                    <!-- Bullet Points -->
+                    <div class="space-y-4">
+                        <!-- Bullet 1 -->
+                        <div class="flex items-start gap-3">
+                            <div class="bullet-dot"></div>
+                            <p class="text-sm font-semibold leading-relaxed" style="color: rgba(255,255,255,0.9);">
+                                <span class="keyword-glow font-bold" style="color: #E8973F;">More confidence</span> from consistent videos
+                            </p>
+                        </div>
+
+                        <!-- Bullet 2 -->
+                        <div class="flex items-start gap-3">
+                            <div class="bullet-dot"></div>
+                            <p class="text-sm font-semibold leading-relaxed" style="color: rgba(255,255,255,0.9);">
+                                YouTube pushes content <span class="keyword-glow font-bold" style="color: #E8973F;">aggressively</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Accent Bar -->
+                    <div class="mt-6 flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full" style="background: #CF9A34; box-shadow: 0 0 8px rgba(207,154,52,0.6);"></div>
+                        <div class="flex-1 h-px" style="background: linear-gradient(90deg, rgba(207,154,52,0.3) 0%, transparent 100%);"></div>
+                    </div>
+                </div>
+
+                <!-- Subtle background decorative elements -->
+                <div class="absolute bottom-4 left-6 right-6 z-0">
+                    <div class="w-full h-px" style="background: linear-gradient(90deg, transparent, rgba(207,154,52,0.08), transparent);"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT HALF: Speaker Area (simulated) -->
+            <div class="w-[45%] relative speaker-area flex flex-col items-center justify-end">
+                
+                <!-- Speaker Silhouette Placeholder -->
+                <div class="relative w-full flex flex-col items-center" style="padding-bottom: 0;">
+                    
+                    <!-- Simulated speaker figure -->
+                    <div class="relative flex flex-col items-center">
+                        <!-- Head -->
+                        <div class="w-16 h-16 rounded-full mb-0" style="background: linear-gradient(180deg, #2A1A0A 0%, #1A0D04 100%); border: 1px solid rgba(207,154,52,0.1);"></div>
+                        <!-- Body -->
+                        <div class="w-28 rounded-t-2xl" style="height: 180px; background: linear-gradient(180deg, #2A1A0A 0%, #150A01 80%); border-top: 1px solid rgba(207,154,52,0.08); border-left: 1px solid rgba(207,154,52,0.05); border-right: 1px solid rgba(207,154,52,0.05);"></div>
+                    </div>
+
+                    <!-- Ambient light on speaker -->
+                    <div class="absolute -top-8 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full" style="background: radial-gradient(circle, rgba(207,154,52,0.06) 0%, transparent 70%); pointer-events: none;"></div>
+                </div>
+
+                <!-- Speaker label hint -->
+                <div class="absolute top-5 right-4 text-right">
+                    <div class="flex items-center gap-1.5 justify-end opacity-60">
+                        <div class="w-1.5 h-1.5 rounded-full animate-pulse" style="background: #C21403;"></div>
+                        <span class="text-[10px] font-semibold uppercase tracking-widest" style="color: rgba(255,255,255,0.4);">LIVE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom label -->
+        <div class="flex items-center justify-center mt-4 gap-2 opacity-50">
+            <div class="w-8 h-px" style="background: rgba(207,154,52,0.3);"></div>
+            <span class="text-[10px] font-semibold uppercase tracking-[0.2em]" style="color: rgba(207,154,52,0.5);">Layout A — The Split Grid</span>
+            <div class="w-8 h-px" style="background: rgba(207,154,52,0.3);"></div>
+        </div>
+    </div>
+</body>
+</html>

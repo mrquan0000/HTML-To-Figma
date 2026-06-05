@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Audience Card</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #150A01;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .brand-card {
+            background: linear-gradient(135deg, rgba(32, 15, 0, 0.85) 0%, rgba(21, 10, 1, 0.92) 100%);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1.5px solid rgba(207, 154, 52, 0.45);
+            border-radius: 24px;
+            box-shadow:
+                0 0 30px rgba(207, 154, 52, 0.18),
+                0 0 60px rgba(207, 154, 52, 0.08),
+                0 0 100px rgba(207, 154, 52, 0.04),
+                0 25px 80px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(207, 154, 52, 0.12),
+                inset 0 0 20px rgba(207, 154, 52, 0.03);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .brand-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                from 180deg at 50% 50%,
+                transparent 0deg,
+                rgba(207, 154, 52, 0.06) 60deg,
+                transparent 120deg,
+                rgba(207, 154, 52, 0.04) 240deg,
+                transparent 360deg
+            );
+            animation: rotateGlow 12s linear infinite;
+            pointer-events: none;
+        }
+
+        .brand-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(207, 154, 52, 0.05) 40%,
+                rgba(246, 199, 30, 0.08) 50%,
+                rgba(207, 154, 52, 0.05) 60%,
+                transparent 100%
+            );
+            animation: lightsweep 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes rotateGlow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes lightsweep {
+            0%, 100% { left: -100%; opacity: 0.5; }
+            50% { left: 120%; opacity: 1; }
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes floatIcon {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
+        }
+
+        .neon-line {
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #CF9A34, #F6C71E, #CF9A34, transparent);
+            border-radius: 2px;
+            box-shadow: 0 0 12px rgba(207, 154, 52, 0.5), 0 0 24px rgba(207, 154, 52, 0.2);
+            animation: pulseGlow 3s ease-in-out infinite;
+        }
+
+        .icon-container {
+            background: linear-gradient(135deg, rgba(207, 154, 52, 0.12) 0%, rgba(232, 151, 63, 0.06) 100%);
+            border: 1px solid rgba(207, 154, 52, 0.2);
+            border-radius: 14px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 16px rgba(207, 154, 52, 0.1);
+            animation: floatIcon 3s ease-in-out infinite;
+        }
+
+        .bullet-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #CF9A34;
+            box-shadow: 0 0 8px rgba(207, 154, 52, 0.6);
+            flex-shrink: 0;
+            margin-top: 8px;
+        }
+
+        .quote-mark {
+            font-size: 64px;
+            line-height: 1;
+            color: rgba(207, 154, 52, 0.15);
+            font-weight: 900;
+            font-family: Georgia, serif;
+            position: absolute;
+            top: -8px;
+            left: -4px;
+            pointer-events: none;
+        }
+
+        .glow-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(207, 154, 52, 0.08);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="w-full max-w-[600px] mx-auto px-4 py-8">
+
+        <!-- Main Card -->
+        <div class="brand-card p-8 md:p-10 relative" style="opacity: 1;">
+
+            <!-- Decorative Glow Rings (Background) -->
+            <div class="glow-ring" style="width: 300px; height: 300px; top: -120px; right: -80px; background: radial-gradient(circle, rgba(207,154,52,0.03) 0%, transparent 70%);"></div>
+            <div class="glow-ring" style="width: 200px; height: 200px; bottom: -60px; left: -40px; background: radial-gradient(circle, rgba(232,151,63,0.04) 0%, transparent 70%);"></div>
+
+            <!-- Card Content -->
+            <div class="relative z-10">
+
+                <!-- Top Icon Row -->
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="icon-container w-12 h-12 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#CF9A34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </div>
+                    <div class="icon-container w-12 h-12 flex items-center justify-center" style="animation-delay: 0.5s;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E8973F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Neon Accent Line -->
+                <div class="neon-line w-16 mb-6"></div>
+
+                <!-- Title -->
+                <h1 class="text-3xl md:text-4xl font-black tracking-widest mb-8" style="color: #F6C71E; text-shadow: 0 0 20px rgba(246, 199, 30, 0.3), 0 0 40px rgba(246, 199, 30, 0.1); letter-spacing: 0.15em;">
+                    MY AUDIENCE
+                </h1>
+
+                <!-- Bullet Points -->
+                <div class="space-y-5 mb-8">
+                    <div class="flex items-start gap-4">
+                        <div class="bullet-dot"></div>
+                        <p class="text-lg md:text-xl font-semibold text-white leading-relaxed" style="text-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                            Creators &amp; Business Owners
+                        </p>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="bullet-dot" style="background: #E8973F; box-shadow: 0 0 8px rgba(232, 151, 63, 0.6);"></div>
+                        <p class="text-lg md:text-xl font-semibold text-white leading-relaxed" style="text-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                            <span style="color: #E8973F; font-weight: 800; text-shadow: 0 0 16px rgba(232, 151, 63, 0.4);">Grow Faster</span> on YouTube
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="w-full h-px mb-6" style="background: linear-gradient(90deg, rgba(207,154,52,0.3), rgba(207,154,52,0.08), transparent);"></div>
+
+                <!-- Quote Section -->
+                <div class="relative pl-6">
+                    <span class="quote-mark">"</span>
+                    <p class="text-sm md:text-base leading-relaxed font-medium" style="color: rgba(255,255,255,0.7);">
+                        So for me, the answer is really, really simple. I want to help <span style="color: #FFFFFF; font-weight: 700;">creators and business owners</span> <span style="color: #E8973F; font-weight: 700;">grow faster</span> on YouTube, so every single video is designed for that same person.
+                    </p>
+                </div>
+
+                <!-- Bottom Accent Dots -->
+                <div class="flex gap-2 mt-8 justify-center">
+                    <div class="w-2 h-2 rounded-full" style="background: #CF9A34; box-shadow: 0 0 8px rgba(207,154,52,0.5);"></div>
+                    <div class="w-2 h-2 rounded-full" style="background: #E8973F; box-shadow: 0 0 8px rgba(232,151,63,0.4);"></div>
+                    <div class="w-2 h-2 rounded-full" style="background: #D36708; box-shadow: 0 0 8px rgba(211,103,8,0.3);"></div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

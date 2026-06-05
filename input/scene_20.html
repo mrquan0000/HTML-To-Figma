@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clarity Is Key – Premium Card</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-dark':       '#150A01',
+                        'brand-card':       '#200F00',
+                        'brand-neon':       '#CF9A34',
+                        'brand-yellow':     '#F6C71E',
+                        'brand-orange':     '#E8973F',
+                        'brand-darkorange': '#D36708',
+                        'brand-wood':       '#542A06',
+                        'brand-gray':       '#A9ADB1',
+                        'brand-red':        '#C21403',
+                        'brand-green':      '#35CC23',
+                    },
+                    fontFamily: {
+                        mont: ['Montserrat', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #150A01;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Ambient Background Blobs ── */
+        .ambient-bg {
+            position: fixed; inset: 0;
+            pointer-events: none; z-index: 0;
+        }
+        .ambient-bg .blob {
+            position: absolute; border-radius: 50%; filter: blur(100px);
+        }
+        .blob-1 { width: 420px; height: 420px; top: -80px; left: -100px;
+            background: radial-gradient(circle, rgba(207,154,52,0.08) 0%, transparent 70%); }
+        .blob-2 { width: 300px; height: 300px; bottom: -60px; right: -60px;
+            background: radial-gradient(circle, rgba(232,151,63,0.06) 0%, transparent 70%); }
+        .blob-3 { width: 200px; height: 200px; top: 50%; left: 60%;
+            background: radial-gradient(circle, rgba(207,154,52,0.04) 0%, transparent 70%); }
+
+        /* ── Glassmorphism Card ── */
+        .glass-card {
+            position: relative;
+            background: linear-gradient(145deg, rgba(32,15,0,0.92) 0%, rgba(32,15,0,0.78) 100%);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1.5px solid rgba(207,154,52,0.35);
+            border-radius: 24px;
+            box-shadow:
+                0 0 20px rgba(207,154,52,0.12),
+                0 0 50px rgba(207,154,52,0.06),
+                0 0 100px rgba(207,154,52,0.03),
+                inset 0 1px 0 rgba(207,154,52,0.10),
+                inset 0 0 40px rgba(207,154,52,0.03),
+                0 30px 60px rgba(0,0,0,0.45);
+            overflow: hidden;
+        }
+
+        /* ── Lightsweep ── */
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -60%;
+            width: 40%; height: 100%;
+            background: linear-gradient(100deg,
+                transparent 0%,
+                rgba(207,154,52,0.025) 30%,
+                rgba(246,199,30,0.045) 50%,
+                rgba(207,154,52,0.025) 70%,
+                transparent 100%);
+            animation: sweep 7s ease-in-out infinite;
+            pointer-events: none; z-index: 1;
+        }
+        @keyframes sweep {
+            0%   { left: -60%; }
+            100% { left: 160%; }
+        }
+
+        /* ── Top-Edge Highlight ── */
+        .glass-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 10%; right: 10%;
+            height: 1px;
+            background: linear-gradient(90deg,
+                transparent,
+                rgba(207,154,52,0.45),
+                rgba(246,199,30,0.55),
+                rgba(207,154,52,0.45),
+                transparent);
+            z-index: 2;
+        }
+
+        /* ── Title Glow ── */
+        .title-glow {
+            text-shadow:
+                0 0 18px rgba(246,199,30,0.35),
+                0 0 40px rgba(246,199,30,0.15),
+                0 0 70px rgba(246,199,30,0.08);
+        }
+
+        /* ── Keyword Glow ── */
+        .kw-glow {
+            text-shadow:
+                0 0 14px rgba(232,151,63,0.50),
+                0 0 32px rgba(232,151,63,0.22);
+        }
+
+        /* ── Divider Glow ── */
+        .divider-glow {
+            height: 1px;
+            background: linear-gradient(90deg,
+                transparent,
+                rgba(207,154,52,0.35),
+                rgba(246,199,30,0.55),
+                rgba(207,154,52,0.35),
+                transparent);
+        }
+
+        /* ── Icon Pill Glow ── */
+        .icon-pill {
+            background: linear-gradient(135deg, rgba(207,154,52,0.22), rgba(232,151,63,0.14));
+            border: 1px solid rgba(207,154,52,0.30);
+            box-shadow: 0 0 12px rgba(207,154,52,0.12);
+        }
+
+        /* ── Accent Dot Pulse ── */
+        .pulse-dot {
+            animation: pulse 3s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.55; transform: scale(1); }
+            50%      { opacity: 1;    transform: scale(1.3); }
+        }
+
+        /* ── Bottom Tag Glow ── */
+        .tag-glow {
+            background: linear-gradient(135deg, rgba(207,154,52,0.10), rgba(232,151,63,0.06));
+            border: 1px solid rgba(207,154,52,0.18);
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen p-4 md:p-8">
+
+    <!-- Ambient Background -->
+    <div class="ambient-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- ═══════════════ CARD ═══════════════ -->
+    <div class="relative w-full max-w-[600px] mx-auto z-10">
+
+        <div class="glass-card p-8 sm:p-10 md:p-12">
+
+            <!-- ── Header: Icon + Title ── -->
+            <div class="flex items-center gap-4 mb-5 relative z-10">
+
+                <!-- Magnifying Glass Icon -->
+                <div class="icon-pill flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center">
+                    <svg class="w-6 h-6 text-brand-neon" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="7"/>
+                        <line x1="16.5" y1="16.5" x2="21" y2="21"/>
+                    </svg>
+                </div>
+
+                <!-- Title -->
+                <h1 class="font-mont font-black text-3xl sm:text-4xl tracking-tight leading-none title-glow">
+                    <span class="text-brand-orange kw-glow">CLARITY</span>
+                    <span class="text-brand-yellow"> IS </span>
+                    <span class="text-brand-orange kw-glow">KEY</span>
+                </h1>
+            </div>
+
+            <!-- ── Divider ── -->
+            <div class="divider-glow w-full mb-6 rounded-full"></div>
+
+            <!-- ── Body Paragraph ── -->
+            <p class="relative z-10 font-mont text-brand-gray text-base sm:text-lg leading-relaxed mb-8">
+                Which is why
+                <span class="text-brand-orange font-bold kw-glow">clarity</span>
+                matters so much in the beginning. You need to know exactly
+                <span class="text-white font-semibold">who this channel is for</span>,
+                what the types of videos that you are making, and the specific
+                <span class="text-white font-semibold">problem</span>
+                that you are trying to help solve.
+            </p>
+
+            <!-- ── Bullet Points ── -->
+            <div class="relative z-10 space-y-5">
+
+                <!-- Bullet 1 – Person / Channel -->
+                <div class="flex items-center gap-4">
+                    <div class="icon-pill flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center">
+                        <svg class="w-5 h-5 text-brand-neon" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                    <p class="font-mont text-white text-base sm:text-lg font-semibold tracking-tight">
+                        Who is this
+                        <span class="text-brand-orange kw-glow">channel</span>
+                        for?
+                    </p>
+                </div>
+
+                <!-- Bullet 2 – Video Types -->
+                <div class="flex items-center gap-4">
+                    <div class="icon-pill flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center">
+                        <svg class="w-5 h-5 text-brand-neon" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                    </div>
+                    <p class="font-mont text-white text-base sm:text-lg font-semibold tracking-tight">
+                        What types of
+                        <span class="text-brand-orange kw-glow">videos</span>?
+                    </p>
+                </div>
+
+                <!-- Bullet 3 – Problem / Target -->
+                <div class="flex items-center gap-4">
+                    <div class="icon-pill flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center">
+                        <svg class="w-5 h-5 text-brand-neon" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <circle cx="12" cy="12" r="6"/>
+                            <circle cx="12" cy="12" r="2"/>
+                        </svg>
+                    </div>
+                    <p class="font-mont text-white text-base sm:text-lg font-semibold tracking-tight">
+                        What
+                        <span class="text-brand-orange kw-glow">problem</span>
+                        do you solve?
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- ── Bottom Accent ── -->
+            <div class="relative z-10 mt-10 flex items-center justify-between">
+
+                <!-- Left decorative dots -->
+                <div class="flex items-center gap-2">
+                    <div class="w-1.5 h-1.5 rounded-full bg-brand-neon pulse-dot"></div>
+                    <div class="w-8 h-px bg-gradient-to-r from-brand-neon to-transparent rounded-full"></div>
+                </div>
+
+                <!-- Center tag -->
+                <div class="tag-glow px-4 py-1.5 rounded-full flex items-center gap-2">
+                    <svg class="w-3.5 h-3.5 text-brand-orange" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="12" r="5"/>
+                    </svg>
+                    <span class="font-mont text-xs font-bold tracking-widest uppercase text-brand-neon opacity-80">
+                        Focus Your Vision
+                    </span>
+                </div>
+
+                <!-- Right decorative dots -->
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-px bg-gradient-to-l from-brand-neon to-transparent rounded-full"></div>
+                    <div class="w-1.5 h-1.5 rounded-full bg-brand-neon pulse-dot" style="animation-delay:1.5s"></div>
+                </div>
+
+            </div>
+
+        </div><!-- /glass-card -->
+
+    </div><!-- /container -->
+
+</body>
+</html>

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Immediate Impact - Premium Card</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            warmOrange: '#E8973F',
+                            darkOrange: '#D36708',
+                            bgGlow: '#200F00',
+                            brightYellow: '#F6C71E',
+                            glassGray: '#A9ADB1',
+                            deepBlack: '#150A01',
+                            woodAccent: '#542A06',
+                            redAccent: '#C21403',
+                            neonGold: '#CF9A34',
+                            positiveGreen: '#35CC23',
+                            pureBlack: '#000000',
+                            pureWhite: '#FFFFFF',
+                        }
+                    },
+                    fontFamily: {
+                        montserrat: ['Montserrat', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #150A01;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .glass-card {
+            background: linear-gradient(135deg, rgba(32, 15, 0, 0.85) 0%, rgba(32, 15, 0, 0.7) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(207, 154, 52, 0.5);
+            border-radius: 24px;
+            box-shadow: 
+                0 0 40px rgba(207, 154, 52, 0.25),
+                0 0 80px rgba(207, 154, 52, 0.1),
+                0 8px 32px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(207, 154, 52, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(207, 154, 52, 0.6), transparent);
+        }
+
+        .glass-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 45%,
+                rgba(207, 154, 52, 0.03) 48%,
+                rgba(207, 154, 52, 0.06) 50%,
+                rgba(207, 154, 52, 0.03) 52%,
+                transparent 55%
+            );
+            animation: lightsweep 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes lightsweep {
+            0% { transform: translateX(-30%) translateY(-30%) rotate(45deg); }
+            50% { transform: translateX(30%) translateY(30%) rotate(45deg); }
+            100% { transform: translateX(-30%) translateY(-30%) rotate(45deg); }
+        }
+
+        .glow-border {
+            box-shadow: 
+                0 0 15px rgba(207, 154, 52, 0.4),
+                0 0 30px rgba(207, 154, 52, 0.2),
+                inset 0 0 15px rgba(207, 154, 52, 0.05);
+        }
+
+        .title-glow {
+            text-shadow: 0 0 20px rgba(246, 199, 30, 0.5), 0 0 40px rgba(246, 199, 30, 0.25);
+        }
+
+        .green-glow {
+            text-shadow: 0 0 15px rgba(53, 204, 35, 0.4);
+        }
+
+        .result-glow {
+            text-shadow: 0 0 15px rgba(232, 151, 63, 0.4);
+        }
+
+        .bullet-item {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        @keyframes slideIn {
+            0% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .accent-line {
+            background: linear-gradient(90deg, #CF9A34, transparent);
+            height: 2px;
+        }
+
+        .neon-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #CF9A34;
+            box-shadow: 0 0 10px rgba(207, 154, 52, 0.6), 0 0 20px rgba(207, 154, 52, 0.3);
+            flex-shrink: 0;
+        }
+
+        .icon-container {
+            background: linear-gradient(135deg, rgba(207, 154, 52, 0.15), rgba(207, 154, 52, 0.05));
+            border: 1px solid rgba(207, 154, 52, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .speaker-placeholder {
+            background: linear-gradient(180deg, rgba(32, 15, 0, 0.3) 0%, rgba(21, 10, 1, 0.5) 100%);
+            border-radius: 20px;
+        }
+
+        .ambient-glow {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-[600px] relative">
+        <!-- Split Grid Container -->
+        <div class="flex gap-0 rounded-3xl overflow-hidden" style="min-height: 480px;">
+            
+            <!-- Left Half - Card Content -->
+            <div class="w-[55%] relative flex items-center justify-center p-6" style="background: #150A01;">
+                <!-- Ambient glow effects -->
+                <div class="ambient-glow" style="
+                    width: 200px; height: 200px; 
+                    background: rgba(207, 154, 52, 0.08); 
+                    top: -50px; left: -50px;
+                "></div>
+                <div class="ambient-glow" style="
+                    width: 150px; height: 150px; 
+                    background: rgba(232, 151, 63, 0.06); 
+                    bottom: -30px; right: 20px;
+                "></div>
+
+                <!-- Main Glass Card -->
+                <div class="glass-card glow-border p-7 w-full relative z-10">
+                    
+                    <!-- Title with icon -->
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="icon-container w-10 h-10">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 17L9 11L13 15L21 7" stroke="#CF9A34" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M17 7H21V11" stroke="#CF9A34" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <h1 class="font-montserrat font-black text-xl tracking-wider uppercase title-glow" style="color: #F6C71E;">
+                            IMMEDIATE<br>IMPACT
+                        </h1>
+                    </div>
+
+                    <!-- Accent line -->
+                    <div class="accent-line w-full mb-5 rounded-full"></div>
+
+                    <!-- Bullet Points -->
+                    <div class="space-y-4">
+                        <!-- Bullet 1 - CTR Improved -->
+                        <div class="bullet-item flex items-center gap-3">
+                            <div class="neon-dot" style="background: #35CC23; box-shadow: 0 0 10px rgba(53, 204, 35, 0.6);"></div>
+                            <div class="flex items-center gap-2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#35CC23" fill-opacity="0.2"/>
+                                    <path d="M7 13L11 17L21 7" stroke="#35CC23" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span class="font-montserrat font-bold text-base tracking-wide green-glow" style="color: #35CC23;">
+                                    CTR Improved
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Bullet 2 - YouTube Pushed Harder -->
+                        <div class="bullet-item flex items-center gap-3">
+                            <div class="neon-dot"></div>
+                            <div class="flex items-center gap-2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" stroke="#FFFFFF" stroke-width="1.5" stroke-opacity="0.3"/>
+                                    <path d="M10 8L16 12L10 16V8Z" fill="#FFFFFF" fill-opacity="0.9"/>
+                                </svg>
+                                <span class="font-montserrat font-semibold text-base tracking-wide text-white">
+                                    YouTube Pushed Harder
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Bullet 3 - Views Climbed Fast -->
+                        <div class="bullet-item flex items-center gap-3">
+                            <div class="neon-dot"></div>
+                            <div class="flex items-center gap-2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M2 20L8.5 13.5L12.5 17.5L22 8" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+                                    <path d="M16 8H22V14" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+                                </svg>
+                                <span class="font-montserrat font-semibold text-base tracking-wide text-white">
+                                    Views Climbed Fast
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Result line -->
+                    <div class="mt-6 pt-4 relative" style="border-top: 1px solid rgba(207, 154, 52, 0.2);">
+                        <div class="flex items-center gap-3">
+                            <div class="icon-container w-9 h-9">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4.5 16.5C3 18 3 21 3 21H21C21 21 21 18 19.5 16.5" stroke="#CF9A34" stroke-width="1.5" stroke-linecap="round"/>
+                                    <path d="M12 3L15.5 9.5H8.5L12 3Z" fill="#E8973F" fill-opacity="0.3" stroke="#E8973F" stroke-width="1.5" stroke-linejoin="round"/>
+                                    <circle cx="12" cy="14" r="4" stroke="#E8973F" stroke-width="1.5" fill="none"/>
+                                    <path d="M10 14L11.5 15.5L14.5 12.5" stroke="#E8973F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <span class="font-montserrat font-bold text-lg tracking-wide result-glow" style="color: #E8973F;">
+                                    Result: 4,000+ Views
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Half - Speaker Placeholder -->
+            <div class="w-[45%] relative overflow-hidden">
+                <div class="speaker-placeholder absolute inset-0 flex items-end justify-center" style="
+                    background: linear-gradient(135deg, #1a0d02 0%, #0d0700 50%, #150A01 100%);
+                ">
+                    <!-- Speaker silhouette placeholder -->
+                    <div class="relative w-full h-full flex items-center justify-center">
+                        <!-- Subtle grid lines for speaker area -->
+                        <div class="absolute inset-0" style="
+                            background: 
+                                linear-gradient(90deg, rgba(207, 154, 52, 0.02) 1px, transparent 1px),
+                                linear-gradient(rgba(207, 154, 52, 0.02) 1px, transparent 1px);
+                            background-size: 30px 30px;
+                        "></div>
+                        
+                        <!-- Speaker figure placeholder -->
+                        <div class="relative z-10 flex flex-col items-center justify-end h-full pb-8">
+                            <!-- Head placeholder -->
+                            <div class="w-16 h-16 rounded-full mb-2" style="
+                                background: linear-gradient(135deg, #542A06, #200F00);
+                                border: 1px solid rgba(207, 154, 52, 0.15);
+                                box-shadow: 0 0 30px rgba(207, 154, 52, 0.05);
+                            "></div>
+                            <!-- Body placeholder -->
+                            <div class="w-24 h-32 rounded-t-xl" style="
+                                background: linear-gradient(180deg, #3a1d06, #200F00);
+                                border: 1px solid rgba(207, 154, 52, 0.1);
+                                border-bottom: none;
+                            "></div>
+                            
+                            <!-- Label -->
+                            <div class="mt-4 px-3 py-1 rounded-full" style="
+                                background: rgba(207, 154, 52, 0.08);
+                                border: 1px solid rgba(207, 154, 52, 0.15);
+                            ">
+                                <span class="font-montserrat text-xs tracking-widest uppercase" style="color: rgba(207, 154, 52, 0.5);">
+                                    Speaker
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom decorative line -->
+        <div class="mt-4 h-[1px] w-full rounded-full" style="
+            background: linear-gradient(90deg, transparent, rgba(207, 154, 52, 0.3), rgba(246, 199, 30, 0.2), rgba(207, 154, 52, 0.3), transparent);
+        "></div>
+        
+        <!-- Scene label -->
+        <div class="mt-3 text-center">
+            <span class="font-montserrat text-xs tracking-[0.3em] uppercase" style="color: rgba(207, 154, 52, 0.35);">
+                Split Grid Layout • Layout A
+            </span>
+        </div>
+    </div>
+</body>
+</html>

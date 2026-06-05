@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPLIFY THUMBNAILS - Premium Card Mockup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-warm-accent': '#E8973F',
+                        'brand-dark-orange': '#D36708',
+                        'brand-dark-bg': '#200F00',
+                        'brand-bright-yellow': '#F6C71E',
+                        'brand-gray-glass': '#A9ADB1',
+                        'brand-black-bg': '#150A01',
+                        'brand-wood': '#542A06',
+                        'brand-red': '#C21403',
+                        'brand-neon-gold': '#CF9A34',
+                        'brand-green': '#35CC23',
+                    },
+                    fontFamily: {
+                        'montserrat': ['Montserrat', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #150A01;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        /* Split Grid Background */
+        .split-container {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            position: relative;
+        }
+
+        .left-panel {
+            width: 55%;
+            background-color: #150A01;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .left-panel::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 50%, rgba(207, 154, 52, 0.03) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .right-panel {
+            width: 45%;
+            background: linear-gradient(135deg, #200F00 0%, #150A01 50%, #0a0500 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .right-panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(207, 154, 52, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        /* Speaker Placeholder */
+        .speaker-silhouette {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            position: relative;
+        }
+
+        .speaker-avatar {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #542A06 0%, #200F00 100%);
+            border: 3px solid rgba(207, 154, 52, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 40px rgba(207, 154, 52, 0.1), inset 0 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .speaker-avatar svg {
+            width: 60px;
+            height: 60px;
+            opacity: 0.4;
+        }
+
+        .speaker-label {
+            color: rgba(169, 173, 177, 0.4);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 600;
+        }
+
+        /* Main Card */
+        .premium-card {
+            width: 100%;
+            max-width: 480px;
+            background: linear-gradient(145deg, rgba(32, 15, 0, 0.95) 0%, rgba(21, 10, 1, 0.98) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1.5px solid rgba(207, 154, 52, 0.4);
+            padding: 2.5rem;
+            position: relative;
+            box-shadow: 
+                0 0 0 1px rgba(207, 154, 52, 0.1),
+                0 0 30px rgba(207, 154, 52, 0.15),
+                0 0 60px rgba(207, 154, 52, 0.08),
+                0 20px 60px rgba(0, 0, 0, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            animation: slideInFromLeft 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .premium-card::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            border-radius: 25px;
+            background: linear-gradient(135deg, rgba(207, 154, 52, 0.5) 0%, rgba(207, 154, 52, 0.1) 30%, rgba(207, 154, 52, 0.0) 50%, rgba(207, 154, 52, 0.1) 70%, rgba(232, 151, 63, 0.4) 100%);
+            z-index: -1;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            padding: 1.5px;
+        }
+
+        .premium-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(207, 154, 52, 0.03) 25%, rgba(255, 255, 255, 0.05) 50%, rgba(207, 154, 52, 0.03) 75%, transparent 100%);
+            border-radius: 24px;
+            pointer-events: none;
+            animation: lightsweep 4s ease-in-out infinite;
+        }
+
+        @keyframes slideInFromLeft {
+            from {
+                transform: translateX(-30px);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes lightsweep {
+            0% {
+                transform: translateX(-30%);
+            }
+            100% {
+                transform: translateX(30%);
+            }
+        }
+
+        /* Glow Pulse */
+        @keyframes glowPulse {
+            0%, 100% {
+                box-shadow: 
+                    0 0 0 1px rgba(207, 154, 52, 0.1),
+                    0 0 30px rgba(207, 154, 52, 0.15),
+                    0 0 60px rgba(207, 154, 52, 0.08),
+                    0 20px 60px rgba(0, 0, 0, 0.6),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            }
+            50% {
+                box-shadow: 
+                    0 0 0 1px rgba(207, 154, 52, 0.15),
+                    0 0 40px rgba(207, 154, 52, 0.2),
+                    0 0 80px rgba(207, 154, 52, 0.12),
+                    0 20px 60px rgba(0, 0, 0, 0.6),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            }
+        }
+
+        .premium-card {
+            animation: slideInFromLeft 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards, glowPulse 3s ease-in-out 1s infinite;
+        }
+
+        /* Icon Container */
+        .icon-badge {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, rgba(207, 154, 52, 0.15) 0%, rgba(232, 151, 63, 0.08) 100%);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(207, 154, 52, 0.2);
+            margin-bottom: 1.25rem;
+            box-shadow: 0 0 20px rgba(207, 154, 52, 0.08);
+        }
+
+        .icon-badge svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* Title Glow */
+        .title-glow {
+            text-shadow: 0 0 20px rgba(246, 199, 30, 0.3), 0 0 40px rgba(246, 199, 30, 0.1);
+        }
+
+        /* Keyword Highlight */
+        .keyword-highlight {
+            color: #E8973F;
+            font-weight: 800;
+            text-shadow: 0 0 15px rgba(232, 151, 63, 0.4), 0 0 30px rgba(232, 151, 63, 0.15);
+            position: relative;
+        }
+
+        /* Bullet Point Styling */
+        .bullet-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.625rem 0;
+            border-bottom: 1px solid rgba(207, 154, 52, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .bullet-item:last-child {
+            border-bottom: none;
+        }
+
+        .bullet-dot {
+            width: 8px;
+            height: 8px;
+            min-width: 8px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #CF9A34 0%, #E8973F 100%);
+            margin-top: 6px;
+            box-shadow: 0 0 10px rgba(207, 154, 52, 0.4);
+        }
+
+        /* Quote Text */
+        .quote-text {
+            font-size: 0.8125rem;
+            line-height: 1.7;
+            color: rgba(255, 255, 255, 0.6);
+            font-style: italic;
+            border-left: 2px solid rgba(207, 154, 52, 0.3);
+            padding-left: 1rem;
+            margin-top: 1.25rem;
+        }
+
+        /* Divider */
+        .glass-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(207, 154, 52, 0.2) 50%, transparent 100%);
+            margin: 1.25rem 0;
+        }
+
+        /* Avoid Badge */
+        .avoid-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.625rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #C21403;
+            background: rgba(194, 20, 3, 0.1);
+            border: 1px solid rgba(194, 20, 3, 0.2);
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        /* Tag Label */
+        .tag-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #CF9A34;
+            opacity: 0.8;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .split-container {
+                flex-direction: column;
+            }
+            .left-panel {
+                width: 100%;
+                min-height: 70vh;
+                padding: 1.5rem;
+            }
+            .right-panel {
+                width: 100%;
+                min-height: 30vh;
+            }
+            .premium-card {
+                padding: 1.75rem;
+            }
+        }
+
+        /* Fade in text */
+        .fade-text-1 { animation: fadeTextIn 0.6s ease 0.3s forwards; opacity: 1; }
+        .fade-text-2 { animation: fadeTextIn 0.6s ease 0.5s forwards; opacity: 1; }
+        .fade-text-3 { animation: fadeTextIn 0.6s ease 0.7s forwards; opacity: 1; }
+        .fade-text-4 { animation: fadeTextIn 0.6s ease 0.9s forwards; opacity: 1; }
+        .fade-text-5 { animation: fadeTextIn 0.6s ease 1.1s forwards; opacity: 1; }
+
+        @keyframes fadeTextIn {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Ambient Particles */
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="split-container">
+        <!-- LEFT PANEL - Card Content -->
+        <div class="left-panel">
+            <!-- Ambient Particles -->
+            <div class="particle" style="width: 4px; height: 4px; background: rgba(207, 154, 52, 0.15); top: 20%; left: 10%;"></div>
+            <div class="particle" style="width: 6px; height: 6px; background: rgba(207, 154, 52, 0.1); top: 70%; left: 80%;"></div>
+            <div class="particle" style="width: 3px; height: 3px; background: rgba(232, 151, 63, 0.12); top: 40%; left: 90%;"></div>
+
+            <!-- PREMIUM CARD -->
+            <div class="premium-card">
+                <!-- Icon Badge -->
+                <div class="icon-badge fade-text-1">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#CF9A34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M8 3.5C8 3.5 9.5 2 12 2C14.5 2 16 3.5 16 3.5" stroke="#CF9A34" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+                    </svg>
+                </div>
+
+                <!-- Tag Label -->
+                <div class="tag-label fade-text-1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13 10V3L4 14H11V21L20 10H13Z" fill="#CF9A34" opacity="0.8"/>
+                    </svg>
+                    LESS IS MORE
+                </div>
+
+                <!-- Title -->
+                <h1 class="title-glow fade-text-2 mt-4 mb-2" style="font-family: 'Montserrat', sans-serif; font-size: 1.75rem; font-weight: 900; color: #F6C71E; letter-spacing: -0.5px; line-height: 1.2;">
+                    <span class="keyword-highlight">SIMPLIFY</span> THUMBNAILS
+                </h1>
+
+                <!-- Subtitle -->
+                <p class="fade-text-2" style="font-size: 0.8125rem; color: rgba(169, 173, 177, 0.7); font-weight: 500; margin-bottom: 1rem;">
+                    The key to high-performing content
+                </p>
+
+                <!-- Glass Divider -->
+                <div class="glass-divider"></div>
+
+                <!-- Bullet Points Section -->
+                <div class="mt-2 mb-1 fade-text-3" style="display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: rgba(255, 255, 255, 0.5);">Common Mistakes</span>
+                    <span class="avoid-badge">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#C21403" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        Avoid
+                    </span>
+                </div>
+
+                <!-- Bullet 1 -->
+                <div class="bullet-item fade-text-3">
+                    <div class="bullet-dot"></div>
+                    <div>
+                        <span style="color: rgba(255, 255, 255, 0.9); font-weight: 600; font-size: 0.9375rem;">Too much text</span>
+                        <p style="color: rgba(255, 255, 255, 0.4); font-size: 0.75rem; margin-top: 2px; font-weight: 400;">Cluttered messaging loses viewer attention</p>
+                    </div>
+                </div>
+
+                <!-- Bullet 2 -->
+                <div class="bullet-item fade-text-4">
+                    <div class="bullet-dot"></div>
+                    <div>
+                        <span style="color: rgba(255, 255, 255, 0.9); font-weight: 600; font-size: 0.9375rem;">Too many arrows</span>
+                        <p style="color: rgba(255, 255, 255, 0.4); font-size: 0.75rem; margin-top: 2px; font-weight: 400;">Visual noise distracts from the main message</p>
+                    </div>
+                </div>
+
+                <!-- Bullet 3 -->
+                <div class="bullet-item fade-text-5">
+                    <div class="bullet-dot"></div>
+                    <div>
+                        <span style="color: rgba(255, 255, 255, 0.9); font-weight: 600; font-size: 0.9375rem;">Random elements</span>
+                        <p style="color: rgba(255, 255, 255, 0.4); font-size: 0.75rem; margin-top: 2px; font-weight: 400;">Incoherent design reduces click-through rate</p>
+                    </div>
+                </div>
+
+                <!-- Glass Divider -->
+                <div class="glass-divider"></div>
+
+                <!-- Quote -->
+                <div class="quote-text fade-text-5">
+                    "And one thing that really helped me massively was <span style="color: #E8973F; font-weight: 700; font-style: normal;">simplifying</span> my thumbnails. Because most thumbnails are way overloaded..."
+                </div>
+
+                <!-- Bottom Icon Bar -->
+                <div class="mt-5 flex items-center justify-between fade-text-5">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 5C4 4.44772 4.44772 4 5 4H19C19.5523 4 20 4.44772 20 5V7C20 7.55228 19.5523 8 19 8H5C4.44772 8 4 7.55228 4 7V5Z" fill="#CF9A34" opacity="0.6"/>
+                            <path d="M4 11C4 10.4477 4.44772 10 5 10H12C12.5523 10 13 10.4477 13 11V13C13 13.5523 12.5523 14 12 14H5C4.44772 14 4 13.5523 4 13V11Z" fill="#CF9A34" opacity="0.4"/>
+                            <path d="M4 17C4 16.4477 4.44772 16 5 16H9C9.55228 16 10 16.4477 10 17V19C10 19.5523 9.55228 20 9 20H5C4.44772 20 4 19.5523 4 19V17Z" fill="#CF9A34" opacity="0.3"/>
+                            <path d="M16 11C16 10.4477 16.4477 10 17 10H19C19.5523 10 20 10.4477 20 11V19C20 19.5523 19.5523 20 19 20H17C16.4477 20 16 19.5523 16 19V11Z" fill="#CF9A34" opacity="0.5"/>
+                        </svg>
+                        <span style="font-size: 0.6875rem; color: rgba(207, 154, 52, 0.6); font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">Clean Design</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.375rem;">
+                        <div style="width: 6px; height: 6px; border-radius: 50%; background: #35CC23; box-shadow: 0 0 8px rgba(53, 204, 35, 0.4);"></div>
+                        <span style="font-size: 0.625rem; color: rgba(53, 204, 35, 0.7); font-weight: 600; letter-spacing: 1px;">SOLVED</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL - Speaker Area -->
+        <div class="right-panel">
+            <!-- Decorative Grid Lines -->
+            <div style="position: absolute; inset: 0; opacity: 0.03; background-image: 
+                linear-gradient(rgba(207, 154, 52, 1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(207, 154, 52, 1) 1px, transparent 1px);
+                background-size: 40px 40px;"></div>
+
+            <!-- Speaker Placeholder -->
+            <div class="speaker-silhouette">
+                <div class="speaker-avatar">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity: 0.35;">
+                        <path d="M20 21V19C20 16.7909 18.2091 15 16 15H8C5.79086 15 4 16.7909 4 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke="#A9ADB1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <span class="speaker-label">Speaker / A-Roll</span>
+
+                <!-- Subtle Direction Arrow -->
+                <div style="position: absolute; left: -30px; top: 50%; transform: translateY(-50%);">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="opacity: 0.15;">
+                        <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="#CF9A34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Decorative Corner Elements -->
+            <div style="position: absolute; top: 2rem; right: 2rem; opacity: 0.1;">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M0 0H20M20 0V20" stroke="#CF9A34" stroke-width="1.5"/>
+                </svg>
+            </div>
+            <div style="position: absolute; bottom: 2rem; left: 2rem; opacity: 0.1;">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M20 20H0M0 20V0" stroke="#CF9A34" stroke-width="1.5"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

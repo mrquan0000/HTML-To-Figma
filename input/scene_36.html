@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLICKS ALONE ≠ SUCCESS - Overlay Pop Card</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            orangeAccent: '#E8973F',
+                            deepOrange: '#D36708',
+                            darkWarm: '#200F00',
+                            brightYellow: '#F6C71E',
+                            frostedGray: '#A9ADB1',
+                            specialBlack: '#150A01',
+                            warmWood: '#542A06',
+                            redAccent: '#C21403',
+                            black: '#000000',
+                            white: '#FFFFFF',
+                            goldNeon: '#CF9A34',
+                            positiveGreen: '#35CC23',
+                        }
+                    },
+                    fontFamily: {
+                        montserrat: ['Montserrat', 'sans-serif'],
+                        inter: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #150A01;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Simulated dimmed A-roll video background */
+        .video-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(
+                ellipse at 50% 45%,
+                rgba(84, 42, 6, 0.15) 0%,
+                rgba(21, 10, 1, 0.6) 40%,
+                rgba(21, 10, 1, 0.92) 100%
+            );
+            z-index: 1;
+        }
+
+        .video-background::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            background: radial-gradient(
+                circle,
+                rgba(207, 154, 52, 0.06) 0%,
+                transparent 70%
+            );
+            z-index: 0;
+        }
+
+        /* Simulated speaker silhouette */
+        .speaker-silhouette {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 260px;
+            height: 380px;
+            background: linear-gradient(
+                to top,
+                rgba(21, 10, 1, 0.95) 0%,
+                rgba(32, 15, 0, 0.5) 40%,
+                transparent 100%
+            );
+            border-radius: 130px 130px 0 0;
+            z-index: 2;
+            opacity: 0.3;
+        }
+
+        /* Glassmorphism card */
+        .glass-card {
+            position: relative;
+            z-index: 10;
+            max-width: 600px;
+            width: 90%;
+            background: linear-gradient(
+                145deg,
+                rgba(32, 15, 0, 0.85) 0%,
+                rgba(32, 15, 0, 0.92) 50%,
+                rgba(32, 15, 0, 0.88) 100%
+            );
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1.5px solid rgba(207, 154, 52, 0.5);
+            border-radius: 24px;
+            padding: 40px 36px 36px;
+            box-shadow:
+                0 0 30px rgba(207, 154, 52, 0.15),
+                0 0 60px rgba(207, 154, 52, 0.08),
+                0 0 100px rgba(207, 154, 52, 0.04),
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(207, 154, 52, 0.12),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+            animation: cardAppear 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+                       glowPulse 3s ease-in-out 0.6s infinite;
+        }
+
+        /* Animated border glow */
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 26px;
+            background: linear-gradient(
+                135deg,
+                rgba(207, 154, 52, 0.4) 0%,
+                rgba(207, 154, 52, 0.05) 30%,
+                rgba(246, 199, 30, 0.15) 50%,
+                rgba(207, 154, 52, 0.05) 70%,
+                rgba(207, 154, 52, 0.4) 100%
+            );
+            z-index: -1;
+            animation: borderGlowShift 4s ease-in-out infinite;
+        }
+
+        /* Outer glow layer */
+        .glass-card::after {
+            content: '';
+            position: absolute;
+            top: -12px;
+            left: -12px;
+            right: -12px;
+            bottom: -12px;
+            border-radius: 36px;
+            background: radial-gradient(
+                ellipse at 50% 50%,
+                rgba(207, 154, 52, 0.08) 0%,
+                transparent 70%
+            );
+            z-index: -2;
+            animation: outerGlowPulse 3s ease-in-out 0.6s infinite;
+        }
+
+        /* Lightsweep effect across the card */
+        .lightsweep {
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                105deg,
+                transparent 40%,
+                rgba(246, 199, 30, 0.04) 45%,
+                rgba(246, 199, 30, 0.08) 50%,
+                rgba(246, 199, 30, 0.04) 55%,
+                transparent 60%
+            );
+            border-radius: 24px;
+            z-index: 1;
+            animation: lightsweepMove 4s ease-in-out 1s infinite;
+            pointer-events: none;
+        }
+
+        /* Keyframes */
+        @keyframes cardAppear {
+            0% {
+                transform: scale(0.85);
+                filter: blur(4px);
+            }
+            100% {
+                transform: scale(1);
+                filter: blur(0px);
+            }
+        }
+
+        @keyframes glowPulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 30px rgba(207, 154, 52, 0.15),
+                    0 0 60px rgba(207, 154, 52, 0.08),
+                    0 0 100px rgba(207, 154, 52, 0.04),
+                    0 20px 60px rgba(0, 0, 0, 0.5),
+                    inset 0 1px 0 rgba(207, 154, 52, 0.12),
+                    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+            }
+            50% {
+                box-shadow:
+                    0 0 40px rgba(207, 154, 52, 0.25),
+                    0 0 80px rgba(207, 154, 52, 0.12),
+                    0 0 120px rgba(207, 154, 52, 0.06),
+                    0 20px 60px rgba(0, 0, 0, 0.5),
+                    inset 0 1px 0 rgba(207, 154, 52, 0.18),
+                    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+            }
+        }
+
+        @keyframes borderGlowShift {
+            0%, 100% {
+                opacity: 0.8;
+                background: linear-gradient(
+                    135deg,
+                    rgba(207, 154, 52, 0.4) 0%,
+                    rgba(207, 154, 52, 0.05) 30%,
+                    rgba(246, 199, 30, 0.15) 50%,
+                    rgba(207, 154, 52, 0.05) 70%,
+                    rgba(207, 154, 52, 0.4) 100%
+                );
+            }
+            50% {
+                opacity: 1;
+                background: linear-gradient(
+                    135deg,
+                    rgba(207, 154, 52, 0.15) 0%,
+                    rgba(246, 199, 30, 0.4) 30%,
+                    rgba(207, 154, 52, 0.1) 50%,
+                    rgba(246, 199, 30, 0.4) 70%,
+                    rgba(207, 154, 52, 0.15) 100%
+                );
+            }
+        }
+
+        @keyframes outerGlowPulse {
+            0%, 100% {
+                opacity: 0.6;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes lightsweepMove {
+            0% {
+                left: -100%;
+            }
+            100% {
+                left: 200%;
+            }
+        }
+
+        @keyframes iconGlow {
+            0%, 100% {
+                filter: drop-shadow(0 0 4px rgba(194, 20, 3, 0.3));
+            }
+            50% {
+                filter: drop-shadow(0 0 10px rgba(194, 20, 3, 0.5));
+            }
+        }
+
+        @keyframes titleGlow {
+            0%, 100% {
+                text-shadow:
+                    0 0 20px rgba(246, 199, 30, 0.3),
+                    0 0 40px rgba(246, 199, 30, 0.1);
+            }
+            50% {
+                text-shadow:
+                    0 0 30px rgba(246, 199, 30, 0.5),
+                    0 0 60px rgba(246, 199, 30, 0.2),
+                    0 0 80px rgba(246, 199, 30, 0.08);
+            }
+        }
+
+        @keyframes warningPulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .title-text {
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        .icon-broken {
+            animation: iconGlow 2.5s ease-in-out 0.3s infinite;
+        }
+
+        .icon-warning {
+            animation: warningPulse 2s ease-in-out infinite;
+        }
+
+        /* Ambient particles */
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(207, 154, 52, 0.3), transparent);
+            z-index: 0;
+            animation: particleFloat 6s ease-in-out infinite;
+        }
+
+        @keyframes particleFloat {
+            0%, 100% {
+                transform: translateY(0) scale(1);
+                opacity: 0.3;
+            }
+            50% {
+                transform: translateY(-20px) scale(1.2);
+                opacity: 0.6;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Simulated dimmed video background -->
+    <div class="video-background">
+        <!-- Speaker silhouette placeholder -->
+        <div class="speaker-silhouette"></div>
+    </div>
+
+    <!-- Ambient floating particles -->
+    <div class="particle" style="width: 6px; height: 6px; top: 15%; left: 20%; animation-delay: 0s;"></div>
+    <div class="particle" style="width: 4px; height: 4px; top: 25%; left: 75%; animation-delay: 1.5s;"></div>
+    <div class="particle" style="width: 5px; height: 5px; top: 60%; left: 15%; animation-delay: 3s;"></div>
+    <div class="particle" style="width: 3px; height: 3px; top: 70%; left: 80%; animation-delay: 2s;"></div>
+    <div class="particle" style="width: 5px; height: 5px; top: 40%; left: 85%; animation-delay: 4s;"></div>
+
+    <!-- Main Glassmorphism Card - The Overlay Pop -->
+    <div class="glass-card">
+
+        <!-- Lightsweep effect layer -->
+        <div class="lightsweep"></div>
+
+        <!-- Card Content -->
+        <div class="relative z-10">
+
+            <!-- Top accent line -->
+            <div class="flex items-center justify-center mb-5">
+                <div class="h-px flex-1" style="background: linear-gradient(to right, transparent, rgba(207, 154, 52, 0.4), transparent);"></div>
+                <div class="mx-3 flex items-center gap-2">
+                    <!-- Warning Icon (SVG) -->
+                    <svg class="icon-warning" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L1 21H23L12 2Z" stroke="#C21403" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="rgba(194, 20, 3, 0.15)"/>
+                        <line x1="12" y1="9" x2="12" y2="13" stroke="#C21403" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="12" cy="17" r="1" fill="#C21403"/>
+                    </svg>
+                    <!-- Broken Link Icon (SVG) -->
+                    <svg class="icon-broken" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 14a3.5 3.5 0 0 0 5 0l4-4a3.5 3.5 0 0 0-5-5l-.5.5" stroke="#C21403" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M14 10a3.5 3.5 0 0 0-5 0l-4 4a3.5 3.5 0 0 0 5 5l.5-.5" stroke="#C21403" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <line x1="8" y1="18" x2="4" y2="22" stroke="#C21403" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+                        <line x1="16" y1="6" x2="20" y2="2" stroke="#C21403" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+                    </svg>
+                </div>
+                <div class="h-px flex-1" style="background: linear-gradient(to right, transparent, rgba(207, 154, 52, 0.4), transparent);"></div>
+            </div>
+
+            <!-- Main Title -->
+            <h1 class="title-text font-montserrat text-center font-black tracking-wider leading-tight mb-3"
+                style="color: #F6C71E; font-size: 2rem; text-transform: uppercase; letter-spacing: 0.08em;">
+                CLICKS ALONE<br>≠ SUCCESS
+            </h1>
+
+            <!-- Divider -->
+            <div class="flex justify-center mb-4">
+                <div class="h-0.5 rounded-full" style="width: 60px; background: linear-gradient(to right, transparent, #CF9A34, transparent);"></div>
+            </div>
+
+            <!-- Red accent subtitle -->
+            <p class="font-montserrat text-center font-bold tracking-wide leading-snug mb-5"
+               style="color: #C21403; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                Something else was killing videos
+            </p>
+
+            <!-- Main body text with glassmorphism inner card -->
+            <div class="rounded-2xl p-5 mb-2" style="background: rgba(15, 7, 0, 0.5); border: 1px solid rgba(207, 154, 52, 0.12);">
+                <div class="flex items-start gap-3">
+                    <!-- Left accent bar -->
+                    <div class="flex-shrink-0 w-1 rounded-full self-stretch" style="background: linear-gradient(to bottom, #CF9A34, #D36708, rgba(84, 42, 6, 0.3));"></div>
+                    <p class="font-inter text-sm leading-relaxed" style="color: rgba(255, 255, 255, 0.85); line-height: 1.75;">
+                        <span class="font-semibold" style="color: #E8973F;">"and the combination is actually what makes it click.</span>
+                        But getting clicks alone wasn't really enough because I noticed
+                        <span class="font-bold" style="color: #C21403;">something else was actually killing my videos.</span>"
+                    </p>
+                </div>
+            </div>
+
+            <!-- Bottom decorative dots -->
+            <div class="flex justify-center items-center gap-2 mt-4">
+                <div class="w-1.5 h-1.5 rounded-full" style="background: #CF9A34; opacity: 0.6;"></div>
+                <div class="w-2 h-2 rounded-full" style="background: #F6C71E; box-shadow: 0 0 8px rgba(246, 199, 30, 0.4);"></div>
+                <div class="w-1.5 h-1.5 rounded-full" style="background: #CF9A34; opacity: 0.6;"></div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

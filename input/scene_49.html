@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRACTICE, NOT PRESSURE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-warm-orange': '#E8973F',
+                        'brand-dark-orange': '#D36708',
+                        'brand-bg-glow': '#200F00',
+                        'brand-bright-yellow': '#F6C71E',
+                        'brand-gray-glass': '#A9ADB1',
+                        'brand-black-deep': '#150A01',
+                        'brand-wood': '#542A06',
+                        'brand-red-accent': '#C21403',
+                        'brand-neon-gold': '#CF9A34',
+                        'brand-green-positive': '#35CC23',
+                    },
+                    fontFamily: {
+                        montserrat: ['Montserrat', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* Neon glow pulse on the card border */
+        @keyframes neonPulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 15px rgba(207, 154, 52, 0.5),
+                    0 0 30px rgba(207, 154, 52, 0.25),
+                    inset 0 0 20px rgba(207, 154, 52, 0.06);
+            }
+            50% {
+                box-shadow:
+                    0 0 25px rgba(207, 154, 52, 0.7),
+                    0 0 50px rgba(207, 154, 52, 0.35),
+                    inset 0 0 30px rgba(207, 154, 52, 0.1);
+            }
+        }
+
+        .neon-glow-card {
+            animation: neonPulse 3s ease-in-out infinite;
+        }
+
+        /* Soft glow on the title */
+        @keyframes titleGlow {
+            0%, 100% {
+                text-shadow:
+                    0 0 8px rgba(246, 199, 30, 0.5),
+                    0 0 20px rgba(246, 199, 30, 0.2);
+            }
+            50% {
+                text-shadow:
+                    0 0 12px rgba(246, 199, 30, 0.7),
+                    0 0 30px rgba(246, 199, 30, 0.3);
+            }
+        }
+
+        .title-glow {
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        /* Subtle keyword emphasis glow */
+        @keyframes keywordGlow {
+            0%, 100% {
+                text-shadow: 0 0 6px rgba(232, 151, 63, 0.4);
+            }
+            50% {
+                text-shadow: 0 0 10px rgba(232, 151, 63, 0.6);
+            }
+        }
+
+        .keyword-glow {
+            animation: keywordGlow 2.5s ease-in-out infinite;
+        }
+
+        /* Lightsweep effect on the card border */
+        @keyframes lightsweep {
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        .lightsweep-border {
+            position: relative;
+        }
+
+        .lightsweep-border::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 26px;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                transparent 35%,
+                rgba(207, 154, 52, 0.6) 45%,
+                rgba(246, 199, 30, 0.4) 50%,
+                rgba(207, 154, 52, 0.6) 55%,
+                transparent 65%,
+                transparent 100%
+            );
+            background-size: 200% 100%;
+            animation: lightsweep 4s linear infinite;
+            z-index: 0;
+            mask:
+                linear-gradient(#fff 0 0) content-box,
+                linear-gradient(#fff 0 0);
+            -webkit-mask:
+                linear-gradient(#fff 0 0) content-box,
+                linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            -webkit-mask-composite: xor;
+            padding: 2px;
+            pointer-events: none;
+        }
+
+        .lightsweep-border::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 24px;
+            background: #200F00;
+            z-index: 0;
+        }
+
+        .card-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Icon float animation */
+        @keyframes iconFloat {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-4px);
+            }
+        }
+
+        .icon-float {
+            animation: iconFloat 3s ease-in-out infinite;
+        }
+
+        .icon-float-delayed {
+            animation: iconFloat 3s ease-in-out 1.5s infinite;
+        }
+    </style>
+</head>
+<body class="bg-brand-black-deep min-h-screen flex items-center justify-center p-4 font-montserrat">
+
+    <!-- Main Frame: Split Layout -->
+    <div class="w-full max-w-[1200px] max-h-[675px] aspect-video flex rounded-2xl overflow-hidden relative">
+
+        <!-- LEFT HALF: Dark panel with Card -->
+        <div class="w-[55%] bg-brand-black-deep relative flex items-center justify-center p-6 md:p-10 overflow-hidden">
+
+            <!-- Subtle ambient background glow -->
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full"
+                 style="background: radial-gradient(circle, rgba(207,154,52,0.06) 0%, rgba(32,15,0,0.02) 50%, transparent 70%);"></div>
+
+            <!-- Card -->
+            <div class="neon-glow-card lightsweep-border w-full max-w-[520px] relative"
+                 style="
+                    border: 2px solid rgba(207, 154, 52, 0.5);
+                    border-radius: 24px;
+                    background: rgba(32, 15, 0, 0.85);
+                    backdrop-filter: blur(20px);
+                    -webkit-backdrop-filter: blur(20px);
+                    padding: 36px 32px;
+                 ">
+
+                <div class="card-content">
+
+                    <!-- Icon Row -->
+                    <div class="flex items-center gap-3 mb-5">
+                        <!-- Practice Icon -->
+                        <div class="icon-float flex items-center justify-center w-11 h-11 rounded-xl"
+                             style="background: rgba(207, 154, 52, 0.12); border: 1px solid rgba(207, 154, 52, 0.25);">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#CF9A34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 20h9"/>
+                                <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                            </svg>
+                        </div>
+                        <!-- No Pressure Icon -->
+                        <div class="icon-float-delayed flex items-center justify-center w-11 h-11 rounded-xl"
+                             style="background: rgba(53, 204, 35, 0.1); border: 1px solid rgba(53, 204, 35, 0.2);">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#35CC23" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M8 15s1.5 2 4 2 4-2 4-2"/>
+                                <line x1="9" y1="9" x2="9.01" y2="9"/>
+                                <line x1="15" y1="9" x2="15.01" y2="9"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Title -->
+                    <h1 class="title-glow text-2xl sm:text-3xl md:text-[2.5rem] font-black tracking-tight leading-tight mb-6"
+                        style="color: #F6C71E; letter-spacing: -0.02em;">
+                        PRACTICE, NOT<br>PRESSURE
+                    </h1>
+
+                    <!-- Divider line -->
+                    <div class="w-16 h-[3px] rounded-full mb-6"
+                         style="background: linear-gradient(90deg, #CF9A34, #F6C71E);"></div>
+
+                    <!-- Bullet Points -->
+                    <ul class="space-y-3.5 mb-6">
+                        <li class="flex items-start gap-3 text-white text-sm sm:text-base leading-relaxed font-medium">
+                            <span class="mt-[7px] flex-shrink-0 w-2 h-2 rounded-full"
+                                  style="background: #CF9A34; box-shadow: 0 0 8px rgba(207, 154, 52, 0.5);"></span>
+                            <span>Every upload is <strong class="keyword-glow font-bold" style="color: #E8973F;">Practice</strong></span>
+                        </li>
+                        <li class="flex items-start gap-3 text-white text-sm sm:text-base leading-relaxed font-medium">
+                            <span class="mt-[7px] flex-shrink-0 w-2 h-2 rounded-full"
+                                  style="background: #CF9A34; box-shadow: 0 0 8px rgba(207, 154, 52, 0.5);"></span>
+                            <span>Slightly <strong class="keyword-glow font-bold" style="color: #E8973F;">better</strong> than last</span>
+                        </li>
+                    </ul>
+
+                    <!-- Quote Section -->
+                    <div class="rounded-2xl p-5"
+                         style="background: rgba(32, 15, 0, 0.6); border: 1px solid rgba(207, 154, 52, 0.15);">
+                        <svg class="w-5 h-5 mb-2 opacity-40" viewBox="0 0 24 24" fill="#CF9A34">
+                            <path d="M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z"/>
+                        </svg>
+                        <p class="text-brand-gray-glass text-xs sm:text-sm leading-relaxed font-medium italic">
+                            "Because now every single upload becomes
+                            <strong style="color: #E8973F;">practice</strong>
+                            instead of just a whole bunch of pressure. You don't need every single video to go viral. You just need every upload to become slightly
+                            <strong style="color: #E8973F;">better</strong>
+                            than the last one."
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT HALF: Speaker area (A-roll placeholder) -->
+        <div class="w-[45%] relative overflow-hidden"
+             style="background: linear-gradient(135deg, #1a0e04 0%, #200F00 40%, #150A01 100%);">
+
+            <!-- Subtle gradient overlay to suggest depth -->
+            <div class="absolute inset-0"
+                 style="background: linear-gradient(to left, transparent 50%, rgba(21, 10, 1, 0.5) 100%);"></div>
+
+            <!-- Subtle vertical line separator -->
+            <div class="absolute left-0 top-[15%] bottom-[15%] w-px"
+                 style="background: linear-gradient(to bottom, transparent, rgba(207, 154, 52, 0.2) 30%, rgba(207, 154, 52, 0.3) 50%, rgba(207, 154, 52, 0.2) 70%, transparent);"></div>
+
+            <!-- Speaker placeholder silhouette indicator -->
+            <div class="absolute bottom-8 right-8 flex items-center gap-2 opacity-30">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#CF9A34" stroke-width="1.5">
+                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+                <span class="text-xs font-semibold tracking-wider uppercase" style="color: #CF9A34;">Speaker</span>
+            </div>
+
+            <!-- Ambient warm light in speaker area -->
+            <div class="absolute top-1/4 left-1/2 -translate-x-1/3 w-[300px] h-[400px] rounded-full opacity-[0.04]"
+                 style="background: radial-gradient(ellipse, #CF9A34 0%, transparent 70%);"></div>
+        </div>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Challenge Beliefs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            amber: '#E8973F',
+                            deepOrange: '#D36708',
+                            darkGlow: '#200F00',
+                            yellow: '#F6C71E',
+                            gray: '#A9ADB1',
+                            black: '#150A01',
+                            wood: '#542A06',
+                            red: '#C21403',
+                            gold: '#CF9A34',
+                            green: '#35CC23',
+                        }
+                    },
+                    fontFamily: {
+                        montserrat: ['Montserrat', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #000000;
+        }
+
+        .glass-card {
+            background: rgba(32, 15, 0, 0.82);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1.5px solid rgba(207, 154, 52, 0.55);
+            border-radius: 24px;
+            box-shadow:
+                0 0 25px rgba(207, 154, 52, 0.18),
+                0 0 60px rgba(207, 154, 52, 0.08),
+                0 12px 40px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(207, 154, 52, 0.4), rgba(246, 199, 30, 0.3), rgba(207, 154, 52, 0.4), transparent);
+        }
+
+        .neon-title {
+            color: #F6C71E;
+            text-shadow:
+                0 0 12px rgba(246, 199, 30, 0.5),
+                0 0 30px rgba(246, 199, 30, 0.25),
+                0 0 60px rgba(246, 199, 30, 0.1);
+        }
+
+        .accent-glow {
+            text-shadow:
+                0 0 8px rgba(232, 151, 63, 0.45),
+                0 0 20px rgba(232, 151, 63, 0.2);
+        }
+
+        .lightsweep-effect {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lightsweep-effect::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -120%;
+            width: 80%;
+            height: 200%;
+            background: linear-gradient(
+                105deg,
+                transparent 30%,
+                rgba(207, 154, 52, 0.04) 45%,
+                rgba(246, 199, 30, 0.07) 50%,
+                rgba(207, 154, 52, 0.04) 55%,
+                transparent 70%
+            );
+            animation: lightSweep 5s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes lightSweep {
+            0% { left: -120%; }
+            100% { left: 200%; }
+        }
+
+        .divider-line {
+            height: 2px;
+            background: linear-gradient(90deg, #CF9A34, rgba(207, 154, 52, 0.3), transparent);
+        }
+
+        .speaker-glow {
+            box-shadow:
+                inset 0 0 80px rgba(207, 154, 52, 0.06),
+                0 0 60px rgba(207, 154, 52, 0.04);
+        }
+
+        .badge-icon {
+            background: linear-gradient(135deg, #CF9A34, #E8973F);
+            box-shadow: 0 0 18px rgba(207, 154, 52, 0.45), 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .quote-border {
+            border-left: 2px solid;
+            border-image: linear-gradient(to bottom, #CF9A34, rgba(207, 154, 52, 0.2)) 1;
+        }
+
+        .grid-pattern {
+            background-image:
+                linear-gradient(rgba(207, 154, 52, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(207, 154, 52, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .corner-accent {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 1.5px solid rgba(207, 154, 52, 0.2);
+        }
+
+        .corner-accent.top-left {
+            top: -1px;
+            left: -1px;
+            border-right: none;
+            border-bottom: none;
+            border-radius: 24px 0 0 0;
+        }
+
+        .corner-accent.bottom-right {
+            bottom: -1px;
+            right: -1px;
+            border-left: none;
+            border-top: none;
+            border-radius: 0 0 24px 0;
+        }
+
+        .dot-pattern {
+            background-image: radial-gradient(rgba(207, 154, 52, 0.12) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .pulse-ring {
+            animation: pulseRing 3s ease-in-out infinite;
+        }
+
+        @keyframes pulseRing {
+            0%, 100% { box-shadow: 0 0 15px rgba(207, 154, 52, 0.3); }
+            50% { box-shadow: 0 0 25px rgba(207, 154, 52, 0.5); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 md:p-8">
+    <!-- Split Grid Container -->
+    <div class="w-full max-w-[900px] flex flex-col md:flex-row rounded-3xl overflow-hidden" style="background: #150A01; box-shadow: 0 0 80px rgba(207, 154, 52, 0.08), 0 25px 60px rgba(0, 0, 0, 0.6);">
+
+        <!-- LEFT HALF - Card Content -->
+        <div class="w-full md:w-[55%] relative grid-pattern lightsweep-effect">
+            <div class="p-8 md:p-10 lg:p-12 relative z-10">
+
+                <!-- Top Badge -->
+                <div class="flex items-center gap-3 mb-8">
+                    <div class="badge-icon w-9 h-9 rounded-full flex items-center justify-center pulse-ring">
+                        <svg class="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <span class="text-[10px] md:text-xs font-bold tracking-[0.25em] uppercase" style="color: #CF9A34;">Key Insight</span>
+                </div>
+
+                <!-- Main Glass Card -->
+                <div class="glass-card p-7 md:p-9 relative">
+
+                    <!-- Corner Accents -->
+                    <div class="corner-accent top-left"></div>
+                    <div class="corner-accent bottom-right"></div>
+
+                    <!-- Challenge Icon -->
+                    <div class="flex items-center gap-3 mb-5">
+                        <svg class="w-6 h-6" style="color: #CF9A34; filter: drop-shadow(0 0 6px rgba(207,154,52,0.5));" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span class="text-[10px] font-bold tracking-[0.3em] uppercase" style="color: rgba(207,154,52,0.7);">Challenge The Norm</span>
+                    </div>
+
+                    <!-- Title -->
+                    <h1 class="text-3xl md:text-4xl lg:text-[2.75rem] font-black tracking-wide uppercase neon-title leading-tight mb-6">
+                        CHALLENGE<br>BELIEFS
+                    </h1>
+
+                    <!-- Decorative Divider -->
+                    <div class="divider-line w-20 mb-7"></div>
+
+                    <!-- Bullet Points -->
+                    <div class="space-y-6">
+                        <!-- Common Belief -->
+                        <div class="flex items-start gap-4 group">
+                            <div class="mt-0.5 flex-shrink-0">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(169,173,177,0.1); border: 1px solid rgba(169,173,177,0.15);">
+                                    <svg class="w-4 h-4" style="color: #A9ADB1;" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold tracking-[0.2em] uppercase mb-1.5 block" style="color: rgba(169,173,177,0.6);">Common</span>
+                                <p class="text-sm md:text-base font-medium leading-relaxed" style="color: #A9ADB1;">
+                                    Consistency alone grows channels
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- VS Divider -->
+                        <div class="flex items-center gap-3 pl-12">
+                            <div class="flex-1 h-px" style="background: linear-gradient(90deg, rgba(207,154,52,0.3), transparent);"></div>
+                            <span class="text-[9px] font-bold tracking-widest" style="color: rgba(207,154,52,0.5);">VS</span>
+                            <div class="flex-1 h-px" style="background: linear-gradient(90deg, transparent, rgba(207,154,52,0.3));"></div>
+                        </div>
+
+                        <!-- Truth -->
+                        <div class="flex items-start gap-4 group">
+                            <div class="mt-0.5 flex-shrink-0">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(232,151,63,0.15); border: 1px solid rgba(232,151,63,0.25); box-shadow: 0 0 12px rgba(232,151,63,0.1);">
+                                    <svg class="w-4 h-4" style="color: #E8973F;" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold tracking-[0.2em] uppercase mb-1.5 block" style="color: #E8973F;">Truth</span>
+                                <p class="text-sm md:text-base font-bold leading-relaxed accent-glow" style="color: #E8973F;">
+                                    Strategy matters more
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Strategy Badge (top-right corner of card) -->
+                    <div class="absolute -top-3 -right-3">
+                        <div class="badge-icon w-11 h-11 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quote Below Card -->
+                <div class="mt-8 quote-border pl-5 py-1">
+                    <p class="text-[11px] md:text-xs font-normal leading-relaxed italic" style="color: rgba(169,173,177,0.65);">
+                        "Because instead of saying something completely obvious, I would challenge a common belief."
+                    </p>
+                </div>
+
+                <!-- Bottom Dot Accent -->
+                <div class="flex items-center gap-2 mt-6">
+                    <div class="w-1.5 h-1.5 rounded-full" style="background: #CF9A34; box-shadow: 0 0 6px rgba(207,154,52,0.5);"></div>
+                    <div class="w-1 h-1 rounded-full" style="background: rgba(207,154,52,0.4);"></div>
+                    <div class="w-1 h-1 rounded-full" style="background: rgba(207,154,52,0.2);"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT HALF - Speaker A-Roll Area -->
+        <div class="w-full md:w-[45%] relative speaker-glow" style="background: linear-gradient(135deg, #1A0E02, #150A01, #0D0601); min-height: 350px;">
+            <!-- Subtle Grid Overlay -->
+            <div class="absolute inset-0 dot-pattern opacity-30"></div>
+
+            <!-- Speaker Silhouette Placeholder -->
+            <div class="absolute inset-0 flex items-center justify-center">
+                <div class="text-center">
+                    <!-- Speaker Avatar Circle -->
+                    <div class="w-28 h-28 md:w-36 md:h-36 mx-auto rounded-full relative mb-5" style="background: linear-gradient(135deg, #200F00, #2A1500); border: 2px solid rgba(207,154,52,0.2); box-shadow: 0 0 40px rgba(207,154,52,0.08);">
+                        <!-- Inner glow ring -->
+                        <div class="absolute inset-2 rounded-full" style="border: 1px solid rgba(207,154,52,0.1);"></div>
+                        <!-- Speaker Icon -->
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <svg class="w-14 h-14 md:w-16 md:h-16" style="color: rgba(207,154,52,0.25);" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="text-[10px] font-bold tracking-[0.3em] uppercase" style="color: rgba(207,154,52,0.3);">Speaker A-Roll</p>
+                    <p class="text-[9px] font-medium mt-1" style="color: rgba(169,173,177,0.2);">Video source positioned here</p>
+                </div>
+            </div>
+
+            <!-- Decorative Vertical Line -->
+            <div class="absolute left-0 top-[15%] bottom-[15%] w-px" style="background: linear-gradient(to bottom, transparent, rgba(207,154,52,0.15), transparent);"></div>
+
+            <!-- Corner Decorations -->
+            <div class="absolute top-4 right-4 w-6 h-6" style="border-top: 1px solid rgba(207,154,52,0.15); border-right: 1px solid rgba(207,154,52,0.15);"></div>
+            <div class="absolute bottom-4 left-4 w-6 h-6" style="border-bottom: 1px solid rgba(207,154,52,0.15); border-left: 1px solid rgba(207,154,52,0.15);"></div>
+        </div>
+    </div>
+</body>
+</html>
