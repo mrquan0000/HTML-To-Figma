@@ -381,6 +381,26 @@ _EXTRACT_JS = r"""
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# Design-width detection — largest fixed px max-width in the layout
+# ═════════════════════════════════════════════════════════════════════════════
+
+_DETECT_WIDTH_JS = r"""
+() => {
+    let maxW = 0;
+    for (const el of document.querySelectorAll('*')) {
+        const mw = window.getComputedStyle(el).maxWidth;
+        // Only fixed px constraints count; 'none' and '%' are layout-relative.
+        if (mw && mw.endsWith('px')) {
+            const v = parseFloat(mw);
+            if (isFinite(v) && v > maxW) maxW = v;
+        }
+    }
+    return maxW || null;
+}
+"""
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # CSS parsers (Python side)
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -852,7 +872,7 @@ def _emit_raster_element(raw: dict, asset_path: str, uid_to_id: dict[str, str], 
 # Main entry
 # ═════════════════════════════════════════════════════════════════════════════
 
-def extract(html_path: str, viewport_width: int = 600, assets_dir: str | None = None) -> dict:
+def extract(html_path: str, viewport_width: int | None = None, assets_dir: str | None = None) -> dict:
     from playwright.sync_api import sync_playwright
 
     html_file = Path(html_path).resolve()
@@ -867,17 +887,40 @@ def extract(html_path: str, viewport_width: int = 600, assets_dir: str | None = 
     warnings = []
     elements_spec: list[dict] = []
 
+    # viewport_width=None → auto-detect the design width from the layout's own
+    # max-width (split/wide layouts like a 1100px two-column scene render
+    # squished at the old 600px default). An explicit value always overrides.
+    auto_width = viewport_width is None
+    PROBE_WIDTH = 1600
+    DEFAULT_WIDTH = 600
+    init_width = PROBE_WIDTH if auto_width else viewport_width
+
     with sync_playwright() as p:
         browser = p.chromium.launch()
         # Render at 2x DPI for crisp raster fallbacks
         context = browser.new_context(
-            viewport={"width": viewport_width, "height": 900},
+            viewport={"width": init_width, "height": 900},
             device_scale_factor=2,
         )
         page = context.new_page()
         page.goto(f"file://{html_file}")
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(500)
+
+        if auto_width:
+            # Largest finite px max-width across the layout = the design width.
+            # %/none are ignored (don't end in 'px'). Only override when a clear
+            # design constraint wider than the default exists; else keep 600.
+            detected = page.evaluate(_DETECT_WIDTH_JS)
+            chosen = DEFAULT_WIDTH
+            if detected and detected > DEFAULT_WIDTH:
+                chosen = int(min(detected, 1920))
+            if chosen != init_width:
+                page.set_viewport_size({"width": chosen, "height": 900})
+                page.wait_for_timeout(400)  # let layout reflow
+            viewport_width = chosen
+            if chosen != DEFAULT_WIDTH:
+                warnings.append(f"auto viewport width = {chosen}px (detected design max-width {int(detected)}px)")
 
         # Freeze CSS animations/transitions so element screenshots don't time out
         # on "element is not stable". We disable both the animation property and
@@ -916,17 +959,31 @@ def extract(html_path: str, viewport_width: int = 600, assets_dir: str | None = 
         # Assign stable string ids
         uid_to_id = {r["uid"]: r["uid"] for r in raw_elements}
 
-        # Calculate bounding box of all elements (normalize origin)
+        # Frame size follows the HTML content, not a fixed viewport box.
+        # Bounding box is computed from REAL content only — full-frame ambient
+        # background overlays (covering ~the whole viewport) are excluded so they
+        # don't pin the frame to the viewport size. A PAD margin is left on all
+        # sides so the frame is PAD px away from the content on every edge.
+        PAD = 100
         if raw_elements:
-            min_x = min(r["x"] for r in raw_elements)
-            min_y = min(r["y"] for r in raw_elements)
-            max_x = max(r["x"] + r["w"] for r in raw_elements)
-            max_y = max(r["y"] + r["h"] for r in raw_elements)
+            def _is_full_frame_bg(r):
+                return r["w"] >= frame_w * 0.95 and r["h"] >= frame_h * 0.95
+            content = [r for r in raw_elements if not _is_full_frame_bg(r)]
+            if not content:                      # all elements are full-frame → use them
+                content = raw_elements
+            min_x = min(r["x"] for r in content)
+            min_y = min(r["y"] for r in content)
+            max_x = max(r["x"] + r["w"] for r in content)
+            max_y = max(r["y"] + r["h"] for r in content)
+            # Shift everything so content starts at (PAD, PAD). Full-frame overlays
+            # move with it (they sit behind, clipped by the frame on export).
+            origin_x = min_x - PAD
+            origin_y = min_y - PAD
             for r in raw_elements:
-                r["x"] -= min_x
-                r["y"] -= min_y
-            adj_w = max(max_x - min_x, frame_w)
-            adj_h = max(max_y - min_y, frame_h)
+                r["x"] -= origin_x
+                r["y"] -= origin_y
+            adj_w = (max_x - min_x) + 2 * PAD
+            adj_h = (max_y - min_y) + 2 * PAD
         else:
             adj_w, adj_h = frame_w, frame_h
 
@@ -944,7 +1001,8 @@ def extract(html_path: str, viewport_width: int = 600, assets_dir: str | None = 
         #       ancestors with data-isolate-ancestor to strip paint, others with
         #       data-isolate-hide to suppress.
         _ISOLATE_JS = r"""
-        (uid) => {
+        (args) => {
+            const [uid, backingCss] = args;
             const target = document.querySelector(`[data-extract-uid="${uid}"]`);
             if (!target) return null;
             const ancestors = new Set();
@@ -994,6 +1052,41 @@ def extract(html_path: str, viewport_width: int = 600, assets_dir: str | None = 
                 document.head.appendChild(st);
             }
             window.__isolateTagged = tagged;
+
+            // ─── Backdrop backing for semi-transparent (glassmorphism) bg ───────
+            // Glass elements look dark only because the dark page shows through
+            // their translucent fill. Isolation removed that backdrop → washed
+            // out PNG. Re-inject the frame's solid dark color as the BOTTOM
+            // background layer of the target itself; background-clip defaults to
+            // border-box so it follows the element's rounded shape (corners +
+            // glow bleed stay transparent). Skip if no translucency, or if the
+            // background is clipped to text (gradient-text), or no backing given.
+            window.__isolateBackingEl = null;
+            window.__isolateBackingStyle = null;
+            if (backingCss) {
+                const bcs = window.getComputedStyle(target);
+                const clip = (bcs.backgroundClip || bcs.webkitBackgroundClip || '');
+                let translucent = false;
+                const bcm = (bcs.backgroundColor || '').match(/rgba?\(([^)]+)\)/);
+                if (bcm) {
+                    const parts = bcm[1].split(',').map(s => parseFloat(s));
+                    const a = parts.length >= 4 ? parts[3] : 1;
+                    if (a > 0 && a < 1) translucent = true;
+                }
+                const bi = bcs.backgroundImage || '';
+                if (bi.includes('gradient')
+                    && (/rgba\([^)]*,\s*0?\.\d+\s*\)/.test(bi) || bi.includes('transparent'))) {
+                    translucent = true;
+                }
+                if (translucent && !clip.includes('text')) {
+                    window.__isolateBackingEl = target;
+                    window.__isolateBackingStyle = target.getAttribute('style');
+                    const solid = `linear-gradient(${backingCss}, ${backingCss})`;
+                    const newBi = (bi && bi !== 'none') ? (bi + ', ' + solid) : solid;
+                    target.style.setProperty('background-image', newBi, 'important');
+                }
+            }
+
             // Compute ink-extent from box-shadow + filter on the target itself.
             // Returns padding (px) to add on each side beyond the element bbox.
             const cs = window.getComputedStyle(target);
@@ -1040,6 +1133,14 @@ def extract(html_path: str, viewport_width: int = 600, assets_dir: str | None = 
             const tagged = window.__isolateTagged || [];
             for (const t of tagged) t.el.removeAttribute(t.attr);
             window.__isolateTagged = null;
+            // Restore the target's original inline style (undo backdrop backing)
+            const bel = window.__isolateBackingEl;
+            if (bel) {
+                if (window.__isolateBackingStyle === null) bel.removeAttribute('style');
+                else bel.setAttribute('style', window.__isolateBackingStyle);
+            }
+            window.__isolateBackingEl = null;
+            window.__isolateBackingStyle = null;
         }
         """
         _GET_BBOX_JS = r"""
@@ -1051,11 +1152,23 @@ def extract(html_path: str, viewport_width: int = 600, assets_dir: str | None = 
         }
         """
 
+        # Opaque dark backing color for glassmorphism elements (see _ISOLATE_JS).
+        # First opaque candidate among root bg → body bg → sampled pixel.
+        def _rgba_to_css_opaque(c: dict | None) -> str | None:
+            if not c:
+                return None
+            return f"rgb({round(c['r']*255)}, {round(c['g']*255)}, {round(c['b']*255)})"
+        backing_css = None
+        for _c in (root_bg, body_bg, _sampled_bg):
+            if _c and _c.get("a", 0) >= 0.99:
+                backing_css = _rgba_to_css_opaque(_c)
+                break
+
         def _isolated_screenshot(uid_str: str, png_path: Path, expand_bleed: bool = True):
             """Isolate target + screenshot. If expand_bleed, clip is enlarged by
             CSS ink-extent so glow/shadow aren't cut to rectangular halo.
             Returns dict {l,t,r,b} of bleed actually applied, or None on failure."""
-            bleed_info = page.evaluate(_ISOLATE_JS, uid_str)
+            bleed_info = page.evaluate(_ISOLATE_JS, [uid_str, backing_css])
             try:
                 if bleed_info is None:
                     return None
@@ -1216,7 +1329,8 @@ def extract(html_path: str, viewport_width: int = 600, assets_dir: str | None = 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extract Figma spec v2 from HTML")
     parser.add_argument("--input", required=True, help="Path to HTML file")
-    parser.add_argument("--viewport-width", type=int, default=600, help="Browser viewport width")
+    parser.add_argument("--viewport-width", type=int, default=None,
+                        help="Browser viewport width. Omit to auto-detect from the layout's max-width.")
     parser.add_argument("--output", required=True, help="Path to write spec.json")
     parser.add_argument("--assets-dir", help="Directory for PNG asset fallbacks (default: output/assets/{frame_name})")
     args = parser.parse_args()

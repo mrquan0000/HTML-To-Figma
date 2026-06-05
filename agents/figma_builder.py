@@ -170,6 +170,36 @@ def first_solid_fill(fills: list[dict] | None) -> tuple[str | None, float]:
     return None, 1.0
 
 
+# Brand palette — derived from the colors used consistently across the source
+# scene HTMLs. Multi-run text (which figma-mcp-go cannot style per-range) keeps
+# one editable text node, and its single color is snapped to the nearest brand
+# color here. EDIT THIS LIST to match your brand. Single-run text is untouched.
+BRAND_PALETTE = [
+    "#CF9A34", "#F6C71E", "#E8973F", "#D36708",   # gold / orange
+    "#150A01", "#200F00", "#542A06",              # dark browns
+    "#35CC23", "#C21403", "#A9ADB1",              # green / red / gray
+    "#FFFFFF", "#000000",
+]
+
+
+def nearest_brand_color(hex_color: str | None) -> str | None:
+    """Snap a hex color to the nearest BRAND_PALETTE entry by RGB distance."""
+    if not hex_color:
+        return hex_color
+    h = hex_color.lstrip("#")
+    if len(h) != 6:
+        return hex_color
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    best, best_d = hex_color, None
+    for cand in BRAND_PALETTE:
+        c = cand.lstrip("#")
+        cr, cg, cb = int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16)
+        d = (r - cr) ** 2 + (g - cg) ** 2 + (b - cb) ** 2
+        if best_d is None or d < best_d:
+            best, best_d = cand, d
+    return best
+
+
 def file_to_base64(path: str) -> str:
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode("ascii")
@@ -387,15 +417,27 @@ class FigmaBuilder:
         full_text = "".join(r.get("text", "") for r in runs).strip()
         if not full_text:
             return
-        # Use first non-empty run as style source
-        style_run = next((r for r in runs if r.get("text", "").strip()), runs[0] if runs else {})
+        # Choose the style source run. figma-mcp-go has no per-range text styling,
+        # so a multi-run text must collapse to ONE style. For multi-run text we
+        # pick the DOMINANT run (most non-whitespace chars) — the body color —
+        # rather than just the first run, and snap its color to the brand palette.
+        # Single-run text keeps its exact style/color. Missing per-word highlights
+        # are re-added by the user in After Effects.
+        nonempty = [r for r in runs if r.get("text", "").strip()]
+        is_multi_run = len(nonempty) > 1
+        if is_multi_run:
+            style_run = max(nonempty, key=lambda r: len(r.get("text", "").strip()))
+        else:
+            style_run = nonempty[0] if nonempty else (runs[0] if runs else {})
         font_family = style_run.get("font_family") or "Inter"
         font_size = style_run.get("font_size") or 14
         font_weight = style_run.get("font_weight") or 400
         italic = style_run.get("italic", False)
 
-        # Text color: first SOLID fill of style run
+        # Text color: first SOLID fill of style run; snap to brand for multi-run.
         fill_hex, fill_alpha = first_solid_fill(style_run.get("fills"))
+        if is_multi_run:
+            fill_hex = nearest_brand_color(fill_hex)
         lx, ly = self._local_xy(el)
         base_args = {
             "name": el["name"],
@@ -452,8 +494,11 @@ class FigmaBuilder:
         # Opacity, rotation
         self._apply_opacity_rotation(node_id, el, fill_alpha)
         # Multi-run flag
-        if len([r for r in runs if r.get("text", "").strip()]) > 1:
-            self.warnings.append(f"text '{el['name'][:30]}' has multiple style runs; collapsed to first run's style")
+        if is_multi_run:
+            self.warnings.append(
+                f"text '{el['name'][:30]}' has multiple style runs; kept editable, "
+                f"color snapped to brand {fill_hex} (per-word highlight to be added in AE)"
+            )
 
     def _create_image(self, el: dict, parent_id: str):
         img_rel = el.get("image_path")

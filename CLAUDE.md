@@ -27,7 +27,7 @@ Khi user cung cấp đường dẫn HTML, ví dụ:
 ```
 
 Tham số tùy chọn:
-- `--viewport-width 600` (default 600) — nếu HTML dùng viewport khác (ví dụ 1200px), pass tham số phù hợp
+- `--viewport-width` — **bỏ trống = tự động** detect design width từ `max-width` lớn nhất của layout (vd split layout 1100px). Chỉ override khi muốn ép 1 width cụ thể. Auto chỉ tăng khi design width > 600; layout ≤600px giữ nguyên 600.
 - `--assets-dir output/assets/<scene_name>` — nơi lưu PNG fallback
 
 **Output:**
@@ -52,11 +52,25 @@ Builder:
 5. Atomic: nếu lỗi giữa chừng → delete frame chính, rollback
 6. Sinh `<scene_name>_report.json` với `frame_id`, mapping uid→node_id, warnings
 
-### Bước 3: Visual validation (1 lần, không loop)
+### Bước 2.5: Đưa các lớp BG xuống đáy (BẮT BUỘC, ngay sau build, KHÔNG screenshot trước)
 
-Sau khi builder báo `status: "ok"`:
+**Đây là hành vi ĐÃ BIẾT, không phải lỗi cần phát hiện:** builder build theo z-index nên các lớp BG (ambient gradient phủ full-frame + lớp `BG-Gradient`) luôn nằm ĐÈ LÊN content. Vì ta đã biết chắc điều này, **làm bước này NGAY sau build, KHÔNG chụp screenshot để "kiểm tra xem có đen không"** — chụp trước là thừa (tốn 2 lần chụp). KHÔNG sửa z-order trong extractor/builder (sợ ảnh hưởng chất lượng raster) → chỉ xếp lại stacking trực tiếp trên Figma.
 
-1. Dùng `mcp__figma-mcp-go__get_screenshot` với `nodeIds=[<frame_id>]` để export PNG
+Các bước:
+1. Đọc `<scene_name>_report.json` → `frame_id` + mapping uid→node_id + tên layer.
+2. Liệt kê TẤT CẢ lớp BG đang đè lên content (trong CÙNG parent), theo thứ tự hiện tại trên→dưới:
+   - Layer tên chứa `/BG-Gradient`
+   - Ambient images `[*/Image]` là gradient phủ ~toàn frame (width ≥ 90% frame_width **và** height ≥ 90% frame_height), thường `[absolute/Image]`
+3. Dùng `mcp__figma-mcp-go__reorder_nodes` đưa TẤT CẢ lớp BG đó xuống **đáy** danh sách con của parent — **giữ nguyên thứ tự tương đối** (vd đang là BG1, BG2, BG3 ở trên → xuống đáy vẫn BG1, BG2, BG3).
+4. Chỉ đụng THỨ TỰ STACKING. KHÔNG đổi x/y, size, fill, opacity của bất kỳ node nào.
+
+Sau bước này ta chắc chắn không còn gì đè lên content → mới sang Bước 3 (chụp **1 lần duy nhất**).
+
+### Bước 3: Visual validation (CHỈ 1 lần screenshot, không loop)
+
+Sau khi đã xong Bước 2.5 (BG đã xuống đáy):
+
+1. Chụp screenshot **DUY NHẤT 1 LẦN**: `mcp__figma-mcp-go__get_screenshot` với `nodeIds=[<frame_id>]` để export PNG
 2. So sánh với HTML gốc (mở bằng Read tool)
 3. Check 5 điểm:
    - [ ] Background bg color + gradient bg PNGs đúng
@@ -161,9 +175,19 @@ Tự động từ extractor:
 - Coords trong spec đã normalize relative to bounding box của tất cả visible elements
 - Output PNG raster ở 2x DPI cho crisp visual
 
+## Quy tắc fix lỗi: LUÔN fix từ GỐC, không fix từ NGỌN
+
+Khi fix bất kỳ lỗi nào (extraction sai, màu sai, layer sai...):
+1. **Điều tra nguyên lý trước.** Tìm ĐÚNG nguyên nhân gốc (root cause): cơ chế nào trong pipeline sinh ra output sai? Đọc code, đọc HTML mẫu, chạy lại + xem PNG/spec để có bằng chứng. KHÔNG đoán.
+2. **Fix tại gốc**, nơi giá trị sai được tạo ra — không vá ở chỗ triệu chứng xuất hiện. Vá triệu chứng (sai đâu sửa đó) sẽ đẻ ra lỗi mới và che mất bug thật.
+3. Một root cause → một fix. Không bundle nhiều thay đổi "tiện tay".
+4. Sau khi xác định root cause, trình bày cho user: lỗi do đâu, fix ở đâu, rồi mới làm.
+
+Quy trình: dùng skill `superpowers:systematic-debugging` (Phase 1 root cause → Phase 4 fix).
+
 ## Khi user yêu cầu fix kết quả Figma sau khi build
 
-KHÔNG re-run pipeline từ đầu. Thay vào đó:
+KHÔNG re-run pipeline từ đầu nếu lỗi chỉ ở 1 vài node. Thay vào đó:
 1. Đọc `<scene>_report.json` để lấy frame_id + uid_to_node_id
 2. Dùng MCP tools (`move_nodes`, `resize_nodes`, `set_fills`, etc.) sửa node trực tiếp
-3. Nếu lỗi fundamental trong extraction → sửa `html_extractor.py` rồi re-run cả 2 bước
+3. Nếu lỗi fundamental trong extraction → sửa `html_extractor.py` rồi re-run cả 2 bước (đây là fix từ gốc, ưu tiên hơn vá node)
