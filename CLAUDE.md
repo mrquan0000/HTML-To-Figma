@@ -27,7 +27,10 @@ Khi user cung cấp đường dẫn HTML, ví dụ:
 ```
 
 Tham số tùy chọn:
-- `--viewport-width` — **bỏ trống = tự động** detect design width từ `max-width` lớn nhất của layout (vd split layout 1100px). Chỉ override khi muốn ép 1 width cụ thể. Auto chỉ tăng khi design width > 600; layout ≤600px giữ nguyên 600.
+- `--viewport-width` — **bỏ trống = tự động** detect kích thước design:
+  - **Canvas cố định** (element có `width`+`height` px, ≥600px rộng, vd `width:1280px;height:720px`) → frame = đúng canvas đó (1280×720), giữ tỷ lệ, KHÔNG +lề.
+  - **Card/responsive** (chỉ có `max-width`, vd 1100px) → frame = content + 100px lề; layout ≤600px giữ 600.
+  - Chỉ truyền số khi muốn ép 1 width cụ thể.
 - `--assets-dir output/assets/<scene_name>` — nơi lưu PNG fallback
 
 **Output:**

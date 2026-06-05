@@ -381,21 +381,53 @@ _EXTRACT_JS = r"""
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Design-width detection — largest fixed px max-width in the layout
+# Design-size detection
+#   canvas   — largest element with an explicit fixed px width AND height
+#              (a self-contained "scene canvas" like 1280×720 / 1920×1080).
+#              Frame should match this exactly (no margin).
+#   maxWidth — largest fixed px max-width (responsive card layouts like 1100).
 # ═════════════════════════════════════════════════════════════════════════════
 
-_DETECT_WIDTH_JS = r"""
+_DETECT_DESIGN_JS = r"""
 () => {
-    let maxW = 0;
-    for (const el of document.querySelectorAll('*')) {
-        const mw = window.getComputedStyle(el).maxWidth;
-        // Only fixed px constraints count; 'none' and '%' are layout-relative.
-        if (mw && mw.endsWith('px')) {
-            const v = parseFloat(mw);
-            if (isFinite(v) && v > maxW) maxW = v;
+    // Selectors that explicitly set BOTH width and height in px (stylesheets).
+    const fixedSelectors = [];
+    for (const sheet of document.styleSheets) {
+        let rules;
+        try { rules = sheet.cssRules; } catch (e) { continue; }
+        if (!rules) continue;
+        for (const rule of rules) {
+            if (rule.style && rule.style.width && rule.style.height
+                && rule.style.width.endsWith('px') && rule.style.height.endsWith('px')) {
+                if (rule.selectorText) fixedSelectors.push(rule.selectorText);
+            }
         }
     }
-    return maxW || null;
+    let maxW = 0;
+    let canvas = null, canvasArea = 0;
+    for (const el of document.querySelectorAll('*')) {
+        const cs = window.getComputedStyle(el);
+        if (cs.maxWidth && cs.maxWidth.endsWith('px')) {
+            const v = parseFloat(cs.maxWidth);
+            if (isFinite(v) && v > maxW) maxW = v;
+        }
+        // Explicit fixed px width+height (inline style or matched rule)?
+        let fixed = (el.style.width.endsWith('px') && el.style.height.endsWith('px'));
+        if (!fixed) {
+            for (const sel of fixedSelectors) {
+                try { if (el.matches(sel)) { fixed = true; break; } } catch (e) {}
+            }
+        }
+        if (fixed) {
+            const r = el.getBoundingClientRect();
+            // ≥600px wide qualifies as a design canvas (skip small fixed boxes/icons).
+            if (r.width >= 600 && r.width * r.height > canvasArea) {
+                canvas = {width: Math.round(r.width), height: Math.round(r.height)};
+                canvasArea = r.width * r.height;
+            }
+        }
+    }
+    return {canvas, maxWidth: maxW || null};
 }
 """
 
@@ -894,6 +926,10 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
     PROBE_WIDTH = 1600
     DEFAULT_WIDTH = 600
     init_width = PROBE_WIDTH if auto_width else viewport_width
+    # canvas_mode: a fixed-size design canvas (width+height) was detected → frame
+    # matches the canvas exactly. Otherwise card-mode (fit content + PAD margin).
+    canvas_mode = False
+    canvas_dims = None
 
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -908,19 +944,27 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
         page.wait_for_timeout(500)
 
         if auto_width:
-            # Largest finite px max-width across the layout = the design width.
-            # %/none are ignored (don't end in 'px'). Only override when a clear
-            # design constraint wider than the default exists; else keep 600.
-            detected = page.evaluate(_DETECT_WIDTH_JS)
-            chosen = DEFAULT_WIDTH
-            if detected and detected > DEFAULT_WIDTH:
-                chosen = int(min(detected, 1920))
-            if chosen != init_width:
-                page.set_viewport_size({"width": chosen, "height": 900})
+            # Detect a fixed design canvas first; else the largest px max-width.
+            design = page.evaluate(_DETECT_DESIGN_JS)
+            canvas = design.get("canvas")
+            maxw = design.get("maxWidth")
+            chosen_h = 900
+            if canvas:
+                # Fixed canvas → render at its exact size; frame = canvas (no margin).
+                chosen = int(min(canvas["width"], 1920))
+                chosen_h = int(min(canvas["height"], 1920))
+                canvas_mode = True
+                canvas_dims = (chosen, chosen_h)
+                warnings.append(f"auto canvas {chosen}×{chosen_h}px (fixed design canvas)")
+            elif maxw and maxw > DEFAULT_WIDTH:
+                chosen = int(min(maxw, 1920))
+                warnings.append(f"auto viewport width = {chosen}px (detected design max-width {int(maxw)}px)")
+            else:
+                chosen = DEFAULT_WIDTH
+            if chosen != init_width or chosen_h != 900:
+                page.set_viewport_size({"width": chosen, "height": chosen_h})
                 page.wait_for_timeout(400)  # let layout reflow
             viewport_width = chosen
-            if chosen != DEFAULT_WIDTH:
-                warnings.append(f"auto viewport width = {chosen}px (detected design max-width {int(detected)}px)")
 
         # Freeze CSS animations/transitions so element screenshots don't time out
         # on "element is not stable". We disable both the animation property and
@@ -959,13 +1003,26 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
         # Assign stable string ids
         uid_to_id = {r["uid"]: r["uid"] for r in raw_elements}
 
-        # Frame size follows the HTML content, not a fixed viewport box.
-        # Bounding box is computed from REAL content only — full-frame ambient
-        # background overlays (covering ~the whole viewport) are excluded so they
-        # don't pin the frame to the viewport size. A PAD margin is left on all
-        # sides so the frame is PAD px away from the content on every edge.
+        # Frame sizing — two modes:
+        #  • canvas_mode: a fixed design canvas was detected → frame = canvas size
+        #    EXACTLY (no margin). Origin = the canvas element's top-left.
+        #  • card-mode: frame = real content bbox + PAD margin on all sides.
+        #    Full-frame ambient overlays are excluded so they don't pin the frame
+        #    to the viewport size.
         PAD = 100
-        if raw_elements:
+        if raw_elements and canvas_mode and canvas_dims:
+            cw, ch = canvas_dims
+            # Locate the canvas element by size match; fall back to (0,0) origin.
+            cands = [r for r in raw_elements if abs(r["w"] - cw) <= 3 and abs(r["h"] - ch) <= 3]
+            if cands:
+                origin_x, origin_y = cands[0]["x"], cands[0]["y"]
+            else:
+                origin_x, origin_y = min(r["x"] for r in raw_elements), min(r["y"] for r in raw_elements)
+            for r in raw_elements:
+                r["x"] -= origin_x
+                r["y"] -= origin_y
+            adj_w, adj_h = cw, ch
+        elif raw_elements:
             def _is_full_frame_bg(r):
                 return r["w"] >= frame_w * 0.95 and r["h"] >= frame_h * 0.95
             content = [r for r in raw_elements if not _is_full_frame_bg(r)]
@@ -1002,7 +1059,7 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
         #       data-isolate-hide to suppress.
         _ISOLATE_JS = r"""
         (args) => {
-            const [uid, backingCss] = args;
+            const [uid, backingCss, backingMaxArea] = args;
             const target = document.querySelector(`[data-extract-uid="${uid}"]`);
             if (!target) return null;
             const ancestors = new Set();
@@ -1063,7 +1120,12 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
             // background is clipped to text (gradient-text), or no backing given.
             window.__isolateBackingEl = null;
             window.__isolateBackingStyle = null;
-            if (backingCss) {
+            // Backing only applies to SMALL bounded elements (chips/badges). Large
+            // translucent overlays (grids, glows, network lines) must stay
+            // translucent so they don't turn opaque and occlude content.
+            const _br = target.getBoundingClientRect();
+            const _smallEnough = !backingMaxArea || (_br.width * _br.height < backingMaxArea);
+            if (backingCss && _smallEnough) {
                 const bcs = window.getComputedStyle(target);
                 const clip = (bcs.backgroundClip || bcs.webkitBackgroundClip || '');
                 let translucent = false;
@@ -1163,12 +1225,15 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
             if _c and _c.get("a", 0) >= 0.99:
                 backing_css = _rgba_to_css_opaque(_c)
                 break
+        # Backing applies only to elements smaller than 15% of the frame area —
+        # large translucent overlays (grid/glow/network) stay translucent.
+        backing_max_area = 0.15 * adj_w * adj_h
 
         def _isolated_screenshot(uid_str: str, png_path: Path, expand_bleed: bool = True):
             """Isolate target + screenshot. If expand_bleed, clip is enlarged by
             CSS ink-extent so glow/shadow aren't cut to rectangular halo.
             Returns dict {l,t,r,b} of bleed actually applied, or None on failure."""
-            bleed_info = page.evaluate(_ISOLATE_JS, [uid_str, backing_css])
+            bleed_info = page.evaluate(_ISOLATE_JS, [uid_str, backing_css, backing_max_area])
             try:
                 if bleed_info is None:
                     return None
