@@ -406,6 +406,17 @@ class FigmaBuilder:
             self.warnings.append(f"create_frame '{el['name']}': no id returned")
             return
         self.uid_to_node_id[el["id"]] = node_id
+        # Figma frames default to an opaque WHITE fill. A frame with no design
+        # background (empty fills — e.g. a pure clip container, or a gradient
+        # container whose visual lives in its BG-Gradient PNG) must be made
+        # transparent, else the white leaks through (e.g. the transparent corners
+        # of a rotated gradient PNG). The master/scene frame uses frame_bg and is
+        # created elsewhere, so it is unaffected.
+        if not fill_hex:
+            try:
+                self.client.call_tool("set_fills", {"nodeId": node_id, "color": "#000000", "opacity": 0})
+            except Exception as e:
+                self.warnings.append(f"transparent fill '{el['name']}': {e}")
         self._apply_post_create(node_id, el, fill_alpha)
         radii = el.get("corner_radii") or [0, 0, 0, 0]
         if any(r > 0 for r in radii):

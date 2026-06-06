@@ -243,6 +243,29 @@ _EXTRACT_JS = r"""
 
     // Detect SVG vs raster vs native.
     // figma-mcp-go set_fills only supports SOLID hex — any gradient must be rasterized.
+    // Detect a CSS "border-triangle" pseudo (::before/::after): a zero-size
+    // content box whose shape comes purely from a solid colored border — the
+    // classic ▶ play-icon / caret trick. Such pseudos have no DOM node so they
+    // can't be screenshotted alone; we rasterize their (leaf) host instead.
+    function hasBorderTrianglePseudo(el) {
+        for (const ps of ['::before', '::after']) {
+            const p = window.getComputedStyle(el, ps);
+            if (!p.content || p.content === 'none') continue;
+            const w = parseFloat(p.width) || 0;
+            const h = parseFloat(p.height) || 0;
+            if (w > 0 && h > 0) continue;            // triangle needs width:0 or height:0
+            for (const s of ['Top', 'Right', 'Bottom', 'Left']) {
+                const bw = parseFloat(p['border' + s + 'Width']) || 0;
+                const bc = p['border' + s + 'Color'] || '';
+                if (bw > 0 && p['border' + s + 'Style'] === 'solid'
+                    && bc && bc !== 'transparent' && bc !== 'rgba(0, 0, 0, 0)') {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     function classify(el, cs, hasDirectText, hasElemChildren) {
         if (el.tagName === 'svg')                            return 'raster';
         if (cs.filter && cs.filter !== 'none')               return 'raster';
@@ -256,6 +279,9 @@ _EXTRACT_JS = r"""
         if (cs.backgroundImage.includes('gradient') && !hasElemChildren) return 'raster';
         // 3d transforms → raster
         if (cs.transform && (cs.transform.includes('matrix3d') || cs.transform.includes('perspective'))) return 'raster';
+        // Leaf (no text/children to flatten) whose only visual extra is a CSS
+        // border-triangle pseudo (▶ play icon) → rasterize so the pseudo renders.
+        if (!hasDirectText && !hasElemChildren && hasBorderTrianglePseudo(el)) return 'raster';
         return 'native';
     }
 
@@ -758,6 +784,14 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
         strokes = [{"type": "SOLID", "color": btc}]
         stroke_weight = btw
 
+    # Gradient containers render their border INSIDE the BG-Gradient PNG (the PNG
+    # is a screenshot of the bordered element). Drop the frame's own stroke to
+    # avoid a doubled / axis-misaligned border (the frame stroke is axis-aligned
+    # but the PNG content may be rotated by a parent transform).
+    if has_gradient_bg:
+        strokes = []
+        stroke_weight = 0
+
     # ─── Per-corner radii (handles % values, common for circles) ────────────
     ref = min(w, h)
     tl = _px_or_pct(cs.get("borderTopLeftRadius"), ref)
@@ -835,8 +869,9 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
                 "image_path": bg_asset,
             })
 
-        # Non-uniform borders → emit thin rect lines (per-side)
-        if not uniform:
+        # Non-uniform borders → emit thin rect lines (per-side).
+        # Skip for gradient containers (border already baked into the BG PNG).
+        if not uniform and not has_gradient_bg:
             for side, bw, color in [
                 ("top",    btw, btc),
                 ("right",  brw, brc),
@@ -1147,24 +1182,40 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
             if (backingCss && _smallEnough) {
                 const bcs = window.getComputedStyle(target);
                 const clip = (bcs.backgroundClip || bcs.webkitBackgroundClip || '');
-                let translucent = false;
-                const bcm = (bcs.backgroundColor || '').match(/rgba?\(([^)]+)\)/);
-                if (bcm) {
-                    const parts = bcm[1].split(',').map(s => parseFloat(s));
-                    const a = parts.length >= 4 ? parts[3] : 1;
-                    if (a > 0 && a < 1) translucent = true;
-                }
-                const bi = bcs.backgroundImage || '';
-                if (bi.includes('gradient')
-                    && (/rgba\([^)]*,\s*0?\.\d+\s*\)/.test(bi) || bi.includes('transparent'))) {
-                    translucent = true;
-                }
-                if (translucent && !clip.includes('text')) {
-                    window.__isolateBackingEl = target;
-                    window.__isolateBackingStyle = target.getAttribute('style');
-                    const solid = `linear-gradient(${backingCss}, ${backingCss})`;
-                    const newBi = (bi && bi !== 'none') ? (bi + ', ' + solid) : solid;
-                    target.style.setProperty('background-image', newBi, 'important');
+                if (!clip.includes('text')) {
+                    const bk = backingCss.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+                    const BR = bk ? +bk[1] : 0, BG = bk ? +bk[2] : 0, BB = bk ? +bk[3] : 0;
+                    const savedStyle = target.getAttribute('style');
+                    let applied = false;
+                    // (1) Translucent background-COLOR (e.g. white 0.9 play button):
+                    //     FLATTEN over backing → opaque. A solid bg-image can't sit
+                    //     below background-color, so compositing math is required.
+                    const cm = (bcs.backgroundColor || '').match(
+                        /rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+))?\)/);
+                    if (cm) {
+                        const r = +cm[1], g = +cm[2], b = +cm[3];
+                        const a = cm[4] !== undefined ? +cm[4] : 1;
+                        if (a > 0 && a < 1) {
+                            const fr = Math.round(r * a + BR * (1 - a));
+                            const fg = Math.round(g * a + BG * (1 - a));
+                            const fb = Math.round(b * a + BB * (1 - a));
+                            target.style.setProperty('background-color', `rgb(${fr}, ${fg}, ${fb})`, 'important');
+                            applied = true;
+                        }
+                    }
+                    // (2) Translucent gradient background-IMAGE (glass chips/badges):
+                    //     add opaque solid as the BOTTOM background-image layer.
+                    const bi = bcs.backgroundImage || '';
+                    if (bi.includes('gradient')
+                        && (/rgba\([^)]*,\s*0?\.\d+\s*\)/.test(bi) || bi.includes('transparent'))) {
+                        const solid = `linear-gradient(${backingCss}, ${backingCss})`;
+                        target.style.setProperty('background-image', bi + ', ' + solid, 'important');
+                        applied = true;
+                    }
+                    if (applied) {
+                        window.__isolateBackingEl = target;
+                        window.__isolateBackingStyle = savedStyle;
+                    }
                 }
             }
 
