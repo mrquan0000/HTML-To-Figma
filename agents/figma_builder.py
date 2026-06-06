@@ -364,6 +364,15 @@ class FigmaBuilder:
             self.warnings.append(f"create_rectangle '{el['name']}': no id returned")
             return
         self.uid_to_node_id[el["id"]] = node_id
+        # Figma shapes default to a gray/white fill. A shape with no design fill
+        # (e.g. .neon-border: only an inset-shadow glow, no background) must be
+        # transparent, else the default fill covers content. Effects/strokes are
+        # applied separately by _apply_post_create and are unaffected.
+        if not fill_hex:
+            try:
+                self.client.call_tool("set_fills", {"nodeId": node_id, "color": "#000000", "opacity": 0})
+            except Exception as e:
+                self.warnings.append(f"transparent fill '{el['name']}': {e}")
         self._apply_post_create(node_id, el, fill_alpha)
         # Non-uniform corner radii
         if len(set(radii)) > 1:
@@ -386,6 +395,12 @@ class FigmaBuilder:
             self.warnings.append(f"create_ellipse '{el['name']}': no id returned")
             return
         self.uid_to_node_id[el["id"]] = node_id
+        # Empty fill → transparent (avoid Figma's default gray/white). See _create_rectangle.
+        if not fill_hex:
+            try:
+                self.client.call_tool("set_fills", {"nodeId": node_id, "color": "#000000", "opacity": 0})
+            except Exception as e:
+                self.warnings.append(f"transparent fill '{el['name']}': {e}")
         self._apply_post_create(node_id, el, fill_alpha)
 
     def _create_inner_frame(self, el: dict, parent_id: str):
