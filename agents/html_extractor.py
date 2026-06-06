@@ -213,13 +213,32 @@ _EXTRACT_JS = r"""
         return merged;
     }
 
-    // Compute effective z order for sort:
-    //   document_order * 0.0001 + zIndex (where set) + 1000 if position!=static
+    // Effective paint order, respecting CSS stacking-context INHERITANCE.
+    // A non-positioned (or auto-z) descendant of a positioned z-indexed ancestor
+    // must stack at that ancestor's level — e.g. text inside `.title-block
+    // {position:absolute; z-index:10}` paints above ambient glows (z-index:1),
+    // even though the text itself is non-positioned. The old per-element formula
+    // gave such text a tiny z and let glows/grid paint over it.
+    //
+    //   band  = nearest ancestor (incl self) that creates a stacking context
+    //           (positioned + explicit z-index) → 100000 + zIndex*1000
+    //   +500  = within a band, positioned elements paint above non-positioned
+    //   +docOrder = tree-order tiebreak (DOM paint order)
+    function stackingBand(el) {
+        let node = el;
+        while (node && node !== document.body && node !== document.documentElement) {
+            const cs = window.getComputedStyle(node);
+            if (cs.position !== 'static' && cs.zIndex !== 'auto') {
+                return 100000 + (parseInt(cs.zIndex) || 0) * 1000;
+            }
+            node = node.parentElement;
+        }
+        return 0;
+    }
     function effectiveZ(el, docOrder) {
         const cs = window.getComputedStyle(el);
-        const z = cs.zIndex === 'auto' ? 0 : parseInt(cs.zIndex) || 0;
         const positioned = cs.position !== 'static' ? 1 : 0;
-        return positioned * 100000 + z * 1000 + docOrder;
+        return stackingBand(el) + positioned * 500 + docOrder;
     }
 
     // Detect SVG vs raster vs native.
