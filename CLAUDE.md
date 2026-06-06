@@ -55,23 +55,11 @@ Builder:
 5. Atomic: nếu lỗi giữa chừng → delete frame chính, rollback
 6. Sinh `<scene_name>_report.json` với `frame_id`, mapping uid→node_id, warnings
 
-### Bước 2.5: Đưa các lớp BG xuống đáy (BẮT BUỘC, ngay sau build, KHÔNG screenshot trước)
-
-**Đây là hành vi ĐÃ BIẾT, không phải lỗi cần phát hiện:** builder build theo z-index nên các lớp BG (ambient gradient phủ full-frame + lớp `BG-Gradient`) luôn nằm ĐÈ LÊN content. Vì ta đã biết chắc điều này, **làm bước này NGAY sau build, KHÔNG chụp screenshot để "kiểm tra xem có đen không"** — chụp trước là thừa (tốn 2 lần chụp). KHÔNG sửa z-order trong extractor/builder (sợ ảnh hưởng chất lượng raster) → chỉ xếp lại stacking trực tiếp trên Figma.
-
-Các bước:
-1. Đọc `<scene_name>_report.json` → `frame_id` + mapping uid→node_id + tên layer.
-2. Liệt kê TẤT CẢ lớp BG đang đè lên content (trong CÙNG parent), theo thứ tự hiện tại trên→dưới:
-   - Layer tên chứa `/BG-Gradient`
-   - Ambient images `[*/Image]` là gradient phủ ~toàn frame (width ≥ 90% frame_width **và** height ≥ 90% frame_height), thường `[absolute/Image]`
-3. Dùng `mcp__figma-mcp-go__reorder_nodes` đưa TẤT CẢ lớp BG đó xuống **đáy** danh sách con của parent — **giữ nguyên thứ tự tương đối** (vd đang là BG1, BG2, BG3 ở trên → xuống đáy vẫn BG1, BG2, BG3).
-4. Chỉ đụng THỨ TỰ STACKING. KHÔNG đổi x/y, size, fill, opacity của bất kỳ node nào.
-
-Sau bước này ta chắc chắn không còn gì đè lên content → mới sang Bước 3 (chụp **1 lần duy nhất**).
+> **Lưu ý — KHÔNG còn bước reorder BG thủ công.** Trước đây có "Bước 2.5" đưa các lớp BG xuống đáy vì builder xếp BG đè lên content. Root cause đó (effectiveZ không kế thừa stacking-context) đã được fix tận gốc → builder nay xếp đúng tầng ngay khi build (BG/glow/grid nằm dưới content; lớp `BG-Gradient` có sentinel z luôn ở đáy). Nếu sau này gặp scene bị BG đè content → **sửa tiếp `effectiveZ` (gốc), KHÔNG quay lại reorder thủ công** (vá ngọn).
 
 ### Bước 3: Visual validation (CHỈ 1 lần screenshot, không loop)
 
-Sau khi đã xong Bước 2.5 (BG đã xuống đáy):
+Sau khi build xong (`status: "ok"`):
 
 1. Chụp screenshot **DUY NHẤT 1 LẦN**: `mcp__figma-mcp-go__get_screenshot` với `nodeIds=[<frame_id>]` để export PNG
 2. So sánh với HTML gốc (mở bằng Read tool)
