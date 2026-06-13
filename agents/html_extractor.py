@@ -485,12 +485,15 @@ _DETECT_DESIGN_JS = r"""
     }
     // Fullscreen detection: handles Tailwind w-full h-screen (and similar) layouts
     // where width/height are viewport-relative, not explicit px values.
+    // Height must be ~viewport (a real h-screen hero), NOT merely ≥90%: a tall
+    // scrolling section (e.g. a single full-width image taller than the viewport)
+    // would otherwise be misread as fullscreen and clipped to viewport height.
     if (!canvas) {
         const firstChild = document.body.firstElementChild;
         if (firstChild) {
             const r = firstChild.getBoundingClientRect();
             const vw = window.innerWidth, vh = window.innerHeight;
-            if (r.width >= vw * 0.95 && r.height >= vh * 0.9) {
+            if (r.width >= vw * 0.95 && r.height >= vh * 0.9 && r.height <= vh * 1.1) {
                 canvas = {width: Math.round(vw), height: Math.round(vh)};
             }
         }
@@ -1360,6 +1363,19 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
                 return {"l": bl, "t": bt, "r": br, "b": bb}
             finally:
                 page.evaluate(_RESTORE_JS)
+
+        # Tall-content guard: page.screenshot(clip=…) is bound to the current
+        # viewport, so any element extending below the (default 900px) viewport is
+        # cut off in its raster PNG. Grow the viewport height to cover the full
+        # document before the screenshot loop so tall elements (e.g. a full-bleed
+        # image taller than the viewport) are captured in full. Capped to avoid
+        # runaway buffers on pathologically long pages.
+        _doc_h = int(page.evaluate("Math.ceil(document.documentElement.scrollHeight)"))
+        _vp = page.viewport_size
+        _target_h = min(_doc_h, 16000)
+        if _target_h > _vp["height"]:
+            page.set_viewport_size({"width": _vp["width"], "height": _target_h})
+            page.wait_for_timeout(300)  # let layout settle after resize
 
         # Raster fallbacks — extract walk already tagged each element with data-extract-uid
         raster_targets = [r for r in raw_elements if r.get("kind") == "raster"]
