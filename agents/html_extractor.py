@@ -268,6 +268,8 @@ _EXTRACT_JS = r"""
 
     function classify(el, cs, hasDirectText, hasElemChildren) {
         if (el.tagName === 'svg')                            return 'raster';
+        // <img> pixels can't be drawn natively → rasterize the rendered box.
+        if (el.tagName === 'IMG')                            return 'raster';
         if (cs.filter && cs.filter !== 'none')               return 'raster';
         if (cs.clipPath && cs.clipPath !== 'none')           return 'raster';
         if (cs.mask && cs.mask !== 'none')                   return 'raster';
@@ -282,6 +284,15 @@ _EXTRACT_JS = r"""
         // Leaf (no text/children to flatten) whose only visual extra is a CSS
         // border-triangle pseudo (▶ play icon) → rasterize so the pseudo renders.
         if (!hasDirectText && !hasElemChildren && hasBorderTrianglePseudo(el)) return 'raster';
+        // Image-clipping viewport (carousel / gallery / thumb): an element that
+        // clips overflow and contains <img> descendants but no direct text. Its
+        // own box shows exactly the visible (clipped) image, while inner <img>
+        // slides may extend far off-screen (e.g. a slick-track). Rasterize the
+        // clipped box as one image and stop recursion so off-screen slides aren't
+        // emitted as stray, frame-inflating image nodes.
+        if (!hasDirectText
+            && (cs.overflow.includes('hidden') || cs.overflow.includes('clip'))
+            && el.querySelector('img')) return 'raster';
         return 'native';
     }
 
@@ -469,6 +480,18 @@ _DETECT_DESIGN_JS = r"""
             if (r.width >= 600 && r.width * r.height > canvasArea) {
                 canvas = {width: Math.round(r.width), height: Math.round(r.height)};
                 canvasArea = r.width * r.height;
+            }
+        }
+    }
+    // Fullscreen detection: handles Tailwind w-full h-screen (and similar) layouts
+    // where width/height are viewport-relative, not explicit px values.
+    if (!canvas) {
+        const firstChild = document.body.firstElementChild;
+        if (firstChild) {
+            const r = firstChild.getBoundingClientRect();
+            const vw = window.innerWidth, vh = window.innerHeight;
+            if (r.width >= vw * 0.95 && r.height >= vh * 0.9) {
+                canvas = {width: Math.round(vw), height: Math.round(vh)};
             }
         }
     }
@@ -979,6 +1002,11 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
     auto_width = viewport_width is None
     PROBE_WIDTH = 1600
     DEFAULT_WIDTH = 600
+    # Fully-fluid responsive pages expose no design width (no fixed canvas, no px
+    # max-width). They are desktop-first: rendering at 600 collapses responsive
+    # multi-column grids to their mobile (1-column) breakpoint. Render at a
+    # desktop width so the intended desktop layout resolves.
+    DESKTOP_WIDTH = 1280
     init_width = PROBE_WIDTH if auto_width else viewport_width
     # canvas_mode: a fixed-size design canvas (width+height) was detected → frame
     # matches the canvas exactly. Otherwise card-mode (fit content + PAD margin).
@@ -1013,7 +1041,14 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
             elif maxw and maxw > DEFAULT_WIDTH:
                 chosen = int(min(maxw, 1920))
                 warnings.append(f"auto viewport width = {chosen}px (detected design max-width {int(maxw)}px)")
+            elif maxw is None:
+                # No width signal at all → fluid desktop-first page. Use desktop
+                # width so responsive grids don't collapse to the mobile breakpoint.
+                chosen = DESKTOP_WIDTH
+                warnings.append(f"auto viewport width = {chosen}px (fluid responsive page, no max-width — desktop default)")
             else:
+                # A px max-width was detected but it's ≤ 600 → genuinely small card
+                # design; keep the narrow default.
                 chosen = DEFAULT_WIDTH
             if chosen != init_width or chosen_h != 900:
                 page.set_viewport_size({"width": chosen, "height": chosen_h})
