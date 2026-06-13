@@ -7,16 +7,48 @@ Pixel-perfect cho phần Figma vẽ được natively; raster PNG fallback cho p
 
 ## Cách dùng
 
-Khi user cung cấp đường dẫn HTML, ví dụ:
+### Khi user cung cấp đường dẫn FILE HTML, ví dụ:
 - `create figma from /path/to/file.html`
 - `tạo figma từ input/scene_1.html`
 - `html to figma ~/Downloads/page.html`
 
-→ Chạy 2 lệnh dưới đây tuần tự, KHÔNG dừng, KHÔNG hỏi lại. Báo cáo 1 lần khi xong.
+→ Chạy 2 lệnh ở **Bước 1 + Bước 2** tuần tự, KHÔNG dừng, KHÔNG hỏi lại.
+
+### Khi user cung cấp URL trang web, ví dụ:
+- `create figma from https://example.com/page`
+- `tạo figma từ url https://...`
+- `html to figma url https://... selector ".some-class"`
+
+→ Chạy **3 lệnh tuần tự** (Bước 0 → Bước 1 → Bước 2). Báo cáo 1 lần khi xong.
+
+**Selector tip cho URL workflow:**
+- Nếu user cho `selector` → truyền vào `--selector "<chuỗi đó>"` ở Bước 0.
+- Nếu không có selector → bỏ qua flag (Bước 0 sẽ lấy `document.body` toàn trang).
+- Selector phải trỏ tới element CHỨA tất cả content muốn render. Nếu selector chỉ chứa cards mà heading nằm ở widget anh em → heading sẽ mất khỏi output. Cách an toàn: chọn selector parent rộng hơn (vd `.elementor-section`, `.elementor-widget-wrap`, hoặc `<section>` cha gần nhất).
 
 ---
 
-## Pipeline v2 — 2 bước
+## Pipeline — 2 bước (FILE input) hoặc 3 bước (URL input)
+
+### Bước 0 (CHỈ KHI input là URL): URL → standalone HTML
+
+```bash
+.venv/bin/python agents/url_to_html.py \
+    --url <URL> \
+    [--selector "<CSS selector>"] \
+    --output input/<scene_name>.html
+```
+
+Tham số tùy chọn:
+- `--viewport WxH` — mặc định `1280x900`
+- `--wait-for {load,domcontentloaded,networkidle}` — mặc định `networkidle`
+- `--wait-extra-ms <int>` — đợi thêm sau load state để render ổn (mặc định `500`)
+
+**Output:** 1 file `input/<scene_name>.html` standalone — chứa `<base href>` của trang gốc, mọi `<link rel="stylesheet">` + font preconnect/preload + inline `<style>` của trang, cộng với override unhide các class `elementor-invisible` (an toàn cho cả trang không phải Elementor).
+
+File này:
+- Mở bằng browser xem trước được (verify visual trước khi build Figma)
+- Đưa thẳng vào Bước 1 với `--input <file>` không cần xử lý thêm
 
 ### Bước 1: Extract HTML → spec.json
 
