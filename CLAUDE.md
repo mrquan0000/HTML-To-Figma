@@ -19,7 +19,9 @@ Pixel-perfect cho phần Figma vẽ được natively; raster PNG fallback cho p
 - `tạo figma từ url https://...`
 - `html to figma url https://... selector ".some-class"`
 
-→ Chạy **3 lệnh tuần tự** (Bước 0 → Bước 1 → Bước 2). Báo cáo 1 lần khi xong.
+→ Chạy tuần tự **Bước 0 → Bước 1 → (gate Bước 1.5) → Bước 2**. Báo cáo 1 lần khi xong.
+
+⚠️ **Ngoại lệ — gate ảnh tĩnh:** nếu sau Bước 1 phát hiện section chỉ là **ảnh thiết kế sẵn** (designer upload `.jpg/.webp`, không phải HTML/CSS sống — xem Bước 1.5) → **DỪNG trước Bước 2, báo + hỏi user có muốn vẽ không** kèm link ảnh để user tự download. KHÔNG tự chạy Bước 2 trong trường hợp này.
 
 **Selector tip cho URL workflow:**
 - Nếu user cho `selector` → truyền vào `--selector "<chuỗi đó>"` ở Bước 0.
@@ -68,6 +70,24 @@ Tham số tùy chọn:
 **Output:**
 - `output/<scene_name>_spec.json` — spec v2
 - `output/assets/<scene_name>/*.png` — raster fallback cho SVG + gradient backgrounds + filter
+
+### Bước 1.5 (CHỈ KHI input là URL): Phát hiện "ảnh thiết kế sẵn" → DỪNG, hỏi user
+
+Nhiều trang (Behance, Dribbble, portfolio…) **KHÔNG phục vụ thiết kế bằng HTML/CSS sống** — designer **upload ảnh đã render sẵn** (`.jpg/.webp`). Khi đó section chỉ là **1 thẻ `<img>`**, mọi chi tiết (chữ, card, icon) đã "nướng" thành pixel → Figma chỉ dựng được **1 frame + 1 image**, KHÔNG có layer riêng lẻ editable. Ảnh kiểu này user **có thể tự download trực tiếp**, không cần dựng Figma.
+
+**Cách phát hiện** — sau Bước 1, đọc `output/<scene>_spec.json`:
+- Spec chỉ gồm element `image` (1 hoặc vài cái) phủ gần kín frame, **VÀ**
+- KHÔNG có element `text`, gần như không có shape native (cùng lắm 1 `rectangle` placeholder màu đồng nhất — chính là placeholder lazy-load).
+
+→ Đây là **ảnh tĩnh**, không phải HTML/CSS sống.
+
+**Hành vi bắt buộc khi phát hiện ảnh tĩnh:**
+1. **DỪNG. KHÔNG tự chạy Bước 2.**
+2. Báo cho user, đại ý: *"Section này chỉ là 1 ảnh thiết kế sẵn (designer upload `.jpg/.webp`), không phải HTML/CSS sống → Figma chỉ ra 1 frame + 1 image, không có layer riêng lẻ. Bạn có thể tự download ảnh trực tiếp. Bạn có muốn tôi vẽ vào Figma không?"*
+3. Kèm **link ảnh gốc** (`src` của `<img>`, ưu tiên bản phân giải cao nhất trong `srcset`) để user download nếu muốn.
+4. Chỉ chạy Bước 2 **SAU KHI user đồng ý vẽ**.
+
+Nếu section là HTML/CSS sống (có `text` + nhiều shape native) → bỏ qua gate này, chạy thẳng Bước 2 như bình thường.
 
 ### Bước 2: Build Figma frame từ spec
 
