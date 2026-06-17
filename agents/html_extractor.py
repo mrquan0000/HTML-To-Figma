@@ -266,11 +266,26 @@ _EXTRACT_JS = r"""
         return false;
     }
 
+    // A filter string made up ONLY of drop-shadow() functions (glow/shadow) —
+    // no blur/brightness/etc. These map 1:1 to Figma DROP_SHADOW effects.
+    function filterIsOnlyDropShadow(filter) {
+        if (!filter || filter === 'none') return false;
+        const stripped = filter.replace(/drop-shadow\((?:[^()]|\([^()]*\))*\)/g, '').trim();
+        return stripped === '';
+    }
+
     function classify(el, cs, hasDirectText, hasElemChildren) {
         if (el.tagName === 'svg')                            return 'raster';
         // <img> pixels can't be drawn natively → rasterize the rendered box.
         if (el.tagName === 'IMG')                            return 'raster';
-        if (cs.filter && cs.filter !== 'none')               return 'raster';
+        if (cs.filter && cs.filter !== 'none') {
+            // Leaf text whose ONLY filter is drop-shadow(s) (a glow/soft shadow)
+            // stays NATIVE: Figma renders the glow as a DROP_SHADOW effect and the
+            // text remains editable (animatable in AE). Any richer filter (blur,
+            // brightness, …) or any non-leaf-text element still rasterizes.
+            const keepNative = filterIsOnlyDropShadow(cs.filter) && hasDirectText && !hasElemChildren;
+            if (!keepNative)                                 return 'raster';
+        }
         if (cs.clipPath && cs.clipPath !== 'none')           return 'raster';
         if (cs.mask && cs.mask !== 'none')                   return 'raster';
         if (cs.backgroundImage.includes('url('))             return 'raster';
@@ -307,7 +322,7 @@ _EXTRACT_JS = r"""
         if (SKIP_TAGS.has(el.tagName)) return;
 
         const r = rectOf(el);
-        if (r.w < 1 || r.h < 1) return;
+        const hasSize = r.w >= 1 && r.h >= 1;
         const cs = styleSnapshot(el, null);
         if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return;
 
@@ -316,79 +331,85 @@ _EXTRACT_JS = r"""
         const hasDirectText = Array.from(el.childNodes).some(n => n.nodeType === 3 && n.textContent.trim());
         const hasElementChildren = Array.from(el.children).some(c => !SKIP_TAGS.has(c.tagName));
 
-        // Coordinates relative to frameRoot
-        const x = Math.round(r.x - frameRect.left);
-        const y = Math.round(r.y - frameRect.top);
-        const w = Math.round(r.w);
-        const h = Math.round(r.h);
-
         const myUid = uid();
         const myZ = effectiveZ(el, docOrder++);
         el.setAttribute('data-extract-uid', myUid);  // for later screenshot lookup
 
-        const klass = classify(el, cs, hasDirectText, hasElementChildren);
-        // Native gradient-bg container with children: needs a "bg-only" PNG so
-        // children stay editable but the gradient still renders behind them.
-        const isGradientContainer = klass === 'native'
-            && cs.backgroundImage.includes('gradient')
-            && hasElementChildren;
+        let visualParent = parentVisualUid;
 
-        // SVG: emit as raster image entry
-        if (el.tagName === 'svg' || klass === 'raster') {
-            out.push({
-                uid: myUid, parent_uid: parentVisualUid,
-                kind: 'raster',
-                x, y, w, h, z: myZ,
-                tag,
-                id: el.id || '',
-                className: el.className && el.className.baseVal !== undefined ? el.className.baseVal : (el.className || ''),
-                cssText: cs,
-                rasterTarget: true,   // builder will request screenshot
-                opacity: parseFloat(cs.opacity),
-            });
-            // Don't recurse into raster element (children captured in PNG)
-            return;
-        }
+        if (hasSize) {
+            visualParent = myUid;
+            
+            // Coordinates relative to frameRoot
+            const x = Math.round(r.x - frameRect.left);
+            const y = Math.round(r.y - frameRect.top);
+            const w = Math.round(r.w);
+            const h = Math.round(r.h);
 
-        // Native element: collect text + style
-        let runs = null;
-        if (hasDirectText) {
-            runs = extractRuns(el);
-        }
+            const klass = classify(el, cs, hasDirectText, hasElementChildren);
+            // Native gradient-bg container with children: needs a "bg-only" PNG so
+            // children stay editable but the gradient still renders behind them.
+            const isGradientContainer = klass === 'native'
+                && cs.backgroundImage.includes('gradient')
+                && hasElementChildren;
 
-        // Pseudo-elements: emit synthetic raster siblings if they have content
-        const pseudos = [];
-        for (const ps of ['::before', '::after']) {
-            const psCS = styleSnapshot(el, ps);
-            const c = (psCS.content || '').trim();
-            if (c && c !== 'none' && c !== 'normal') {
-                pseudos.push({pseudo: ps, cs: psCS});
+            // SVG: emit as raster image entry
+            if (el.tagName === 'svg' || klass === 'raster') {
+                out.push({
+                    uid: myUid, parent_uid: parentVisualUid,
+                    kind: 'raster',
+                    x, y, w, h, z: myZ,
+                    tag,
+                    id: el.id || '',
+                    className: el.className && el.className.baseVal !== undefined ? el.className.baseVal : (el.className || ''),
+                    cssText: cs,
+                    rasterTarget: true,   // builder will request screenshot
+                    opacity: parseFloat(cs.opacity),
+                });
+                // Don't recurse into raster element (children captured in PNG)
+                return;
             }
-        }
 
-        const elem = {
-            uid: myUid, parent_uid: parentVisualUid,
-            kind: 'native',
-            tag,
-            x, y, w, h, z: myZ,
-            id: el.id || '',
-            className: typeof el.className === 'string' ? el.className : '',
-            cssText: cs,
-            runs,
-            hasElementChildren,
-            pseudos,
-            opacity: parseFloat(cs.opacity),
-            isGradientContainer: isGradientContainer,
-        };
-        out.push(elem);
-        // Gradient container's bg-only PNG is captured later in Python via
-        // strip-children/screenshot/restore — no clone needed here.
+            // Native element: collect text + style
+            let runs = null;
+            if (hasDirectText) {
+                runs = extractRuns(el);
+            }
 
-        // Pseudo-elements: if non-empty, emit as raster (since exact placement of ::before/::after is complex)
-        for (const p of pseudos) {
-            // Skip for now — pseudo-elements often used for decorations.
-            // The parent's bbox already includes them visually if positioned absolutely inside.
-            // TODO: more precise extraction via getBoxQuads if needed.
+            // Pseudo-elements: emit synthetic raster siblings if they have content
+            const pseudos = [];
+            for (const ps of ['::before', '::after']) {
+                const psCS = styleSnapshot(el, ps);
+                const c = (psCS.content || '').trim();
+                if (c && c !== 'none' && c !== 'normal') {
+                    pseudos.push({pseudo: ps, cs: psCS});
+                }
+            }
+
+            const elem = {
+                uid: myUid, parent_uid: parentVisualUid,
+                kind: 'native',
+                tag,
+                x, y, w, h, z: myZ,
+                id: el.id || '',
+                className: typeof el.className === 'string' ? el.className : '',
+                cssText: cs,
+                runs,
+                hasElementChildren,
+                pseudos,
+                opacity: parseFloat(cs.opacity),
+                isGradientContainer: isGradientContainer,
+            };
+            out.push(elem);
+            // Gradient container's bg-only PNG is captured later in Python via
+            // strip-children/screenshot/restore — no clone needed here.
+
+            // Pseudo-elements: if non-empty, emit as raster (since exact placement of ::before/::after is complex)
+            for (const p of pseudos) {
+                // Skip for now — pseudo-elements often used for decorations.
+                // The parent's bbox already includes them visually if positioned absolutely inside.
+                // TODO: more precise extraction via getBoxQuads if needed.
+            }
         }
 
         // Recurse: if element holds text (runs), treat its inline children as part of runs — stop recursion.
@@ -410,7 +431,7 @@ _EXTRACT_JS = r"""
         }
 
         for (const child of el.children) {
-            visit(child, parentUid, myUid);
+            visit(child, parentUid, visualParent);
         }
     }
 
@@ -693,6 +714,23 @@ def _parse_one_shadow(s: str) -> dict | None:
     }
 
 
+def _parse_filter_drop_shadows(filter_str: str) -> list[dict]:
+    """Parse `filter: drop-shadow(...)` occurrences → DROP_SHADOW effects.
+
+    CSS filter drop-shadow has the same `offx offy blur color` token shape as
+    box-shadow but never carries spread or inset, so we reuse _parse_one_shadow.
+    """
+    if not filter_str or filter_str == "none":
+        return []
+    out = []
+    for m in re.finditer(r"drop-shadow\(((?:[^()]|\([^()]*\))*)\)", filter_str):
+        e = _parse_one_shadow(m.group(1))
+        if e:
+            e["type"] = "DROP_SHADOW"  # filter drop-shadow is never inset
+            out.append(e)
+    return out
+
+
 def _parse_transform_rotation(transform: str) -> float:
     """Extract rotation angle (degrees) from CSS transform matrix. Returns 0 if none."""
     if not transform or transform == "none":
@@ -854,11 +892,29 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
     }
     name_hint = raw.get("id") or (raw.get("className", "").split()[0] if raw.get("className") else raw["tag"])
 
-    # ─── Emit shape (if any visual) ─────────────────────────────────────────
-    if has_visual:
+    # ─── Emit shape (if any visual or needs grouping) ───────────────────────
+    needs_children = raw.get("hasElementChildren") or has_gradient_bg
+    # Pure-layout container: a div with element children but no visual of its own
+    # (no fill/border/effect/gradient-bg), overflow visible, no rotation/opacity
+    # grouping. Emitting it as a Figma frame would CLIP its children — Figma frames
+    # clip by default and figma-mcp-go exposes no API to disable it, so any child
+    # positioned outside the container's box (e.g. an absolutely-positioned label
+    # at top:-38px) disappears. Skip the frame; Pass 3 promotes the children to the
+    # nearest emitted ancestor, preserving their absolute positions without clipping.
+    is_pure_layout_container = (
+        raw.get("hasElementChildren")
+        and not has_visual
+        and not has_gradient_bg
+        and not clip_content
+        and rotation == 0
+        and opacity >= 0.999
+    )
+    if is_pure_layout_container:
+        needs_children = False
+    emit_shape = has_visual or needs_children
+    if emit_shape:
         # Rectangles and ellipses in Figma cannot have children. Anything with
         # element children OR a bg-only child PNG MUST become a frame.
-        needs_children = raw.get("hasElementChildren") or has_gradient_bg
         if needs_children:
             shape_type = "frame"
         elif is_circle:
@@ -942,14 +998,20 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
 
         # Build name from first run text
         preview = (runs[0]["text"] if runs else "").strip()[:24].replace("\n", " ")
+        # filter:drop-shadow (glow/soft shadow) → native DROP_SHADOW on the text node
+        # (box-shadow stays on the emitted shape, if any). Lets glowing text stay
+        # editable instead of being rasterized.
+        text_effects = _parse_filter_drop_shadows(cs.get("filter", ""))
         text_elem = {
             **base,
-            "id": el_id + ("_t" if has_visual else ""),
+            "id": el_id + ("_t" if emit_shape else ""),
+            "parent_id": el_id if (emit_shape and shape_type == "frame") else parent_id,
             "type": "text",
             "name": f"[{name_hint}/Text-{preview or 'empty'}]",
             "runs": runs,
             "text_align": text_align,
             "line_height": line_height,
+            "effects": text_effects,
         }
         elements_out.append(text_elem)
 
@@ -1192,6 +1254,7 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
                         -webkit-backdrop-filter: none !important;
                         outline: none !important;
                         border-color: transparent !important;
+                        opacity: 1 !important;
                     }
                     [data-isolate-ancestor]::before, [data-isolate-ancestor]::after {
                         content: none !important;
@@ -1331,11 +1394,11 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
         backing_css = None
         for _c in (root_bg, body_bg, _sampled_bg):
             if _c and _c.get("a", 0) >= 0.99:
-                backing_css = _rgba_to_css_opaque(_c)
+                # backing_css = _rgba_to_css_opaque(_c)
                 break
         # Backing applies only to elements smaller than 15% of the frame area —
         # large translucent overlays (grid/glow/network) stay translucent.
-        backing_max_area = 0.15 * adj_w * adj_h
+        backing_max_area = 0
 
         def _isolated_screenshot(uid_str: str, png_path: Path, expand_bleed: bool = True):
             """Isolate target + screenshot. If expand_bleed, clip is enlarged by

@@ -519,6 +519,8 @@ class FigmaBuilder:
                 self.warnings.append(f"resize_nodes text {el['name']}: {e}")
         # Opacity, rotation
         self._apply_opacity_rotation(node_id, el, fill_alpha)
+        # Glow / soft shadow from CSS filter:drop-shadow → native effect on the text
+        self._apply_effects(node_id, el.get("effects") or [])
         # Multi-run flag
         if is_multi_run:
             self.warnings.append(

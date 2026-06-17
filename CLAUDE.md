@@ -114,8 +114,14 @@ Builder:
 Sau khi build xong (`status: "ok"`):
 
 1. Chụp screenshot **DUY NHẤT 1 LẦN**: `mcp__figma-mcp-go__get_screenshot` với `nodeIds=[<frame_id>]` để export PNG
-2. So sánh với HTML gốc (mở bằng Read tool)
-3. Check 5 điểm:
+2. **Render HTML thật làm ảnh tham chiếu** (KHÔNG đọc source code để đoán):
+   ```bash
+   .venv/bin/python utils/render_html.py --input <FILE.html> --output output/<scene>_html_render.png
+   ```
+   So sánh Figma PNG **với ảnh render này**, pixel-to-pixel.
+
+   ⚠️ **Chuẩn "đúng" = Figma trung thực với HTML như browser THỰC SỰ render** — không phải theo intent suy diễn từ CSS/markup. Element render ở height=0 / bị clip / vô hình thì **KHÔNG xuất hiện** trong cả render lẫn Figma → đó là ĐÚNG, không phải "thiếu". TUYỆT ĐỐI không đọc raw HTML/CSS rồi kết luận "lẽ ra phải có khối X" — chỉ so cái render thật cho thấy. (Xem [[faithful-to-html-render]].)
+3. Check 5 điểm (so render thật ↔ Figma):
    - [ ] Background bg color + gradient bg PNGs đúng
    - [ ] Vị trí + size từng layer khớp
    - [ ] SVG icons (raster) hiển thị đúng pixel
@@ -217,6 +223,13 @@ Tự động từ extractor:
 - Builder spawn instance MCP riêng — figma-mcp-go có cơ chế LEADER/FOLLOWER, an toàn chạy song song với Claude's MCP
 - Coords trong spec đã normalize relative to bounding box của tất cả visible elements
 - Output PNG raster ở 2x DPI cho crisp visual
+
+## Dọn dẹp dự án (Cleanup)
+
+Khi hoàn thành một dự án vẽ Figma và muốn dọn sạch các file HTML và Spec/Report/Assets tạm để chuẩn bị cho dự án mới, bạn chạy lệnh sau:
+```bash
+.venv/bin/python utils/clean_project.py
+```
 
 ## Quy tắc fix lỗi: LUÔN fix từ GỐC, không fix từ NGỌN
 
