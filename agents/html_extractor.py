@@ -147,6 +147,38 @@ _EXTRACT_JS = r"""
                 right: r.right, bottom: r.bottom};
     }
 
+    // Absolute rotation (deg) of a computed transform. translate-only → 0.
+    function rotationDeg(transform) {
+        if (!transform || transform === 'none') return 0;
+        const m = transform.match(/matrix\(\s*([-\d.]+),\s*([-\d.]+),\s*([-\d.]+),\s*([-\d.]+)/);
+        if (m) return Math.abs(Math.atan2(parseFloat(m[2]), parseFloat(m[1])) * 180 / Math.PI);
+        const r = transform.match(/rotate\(\s*(-?[\d.]+)deg/);
+        return r ? Math.abs(parseFloat(r[1])) : 0;
+    }
+
+    // Union of an element's own text line boxes (where the glyphs actually render),
+    // returned as an OFFSET from the element's border-box (elX/elY are the element's
+    // frame-relative coords) so it survives the later origin shift. Used to give a
+    // text element its TRUE geometry when the element also paints a box of a
+    // different size than its text — e.g. a fixed 80×160 .domino card whose
+    // single-word label renders on one line OVERFLOWING the box. null if none.
+    function textBoxOffset(el, elX, elY) {
+        try {
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const rects = range.getClientRects();
+            let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+            for (const r of rects) {
+                if (r.width === 0 || r.height === 0) continue;
+                x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top);
+                x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom);
+            }
+            if (x0 === Infinity) return null;
+            return {dx: (x0 - frameRect.left) - elX, dy: (y0 - frameRect.top) - elY,
+                    w: Math.round(x1 - x0), h: Math.round(y1 - y0)};
+        } catch (e) { return null; }
+    }
+
     // Frame root = body. All top-level layout (ambient layers, main container, etc.)
     // becomes children. Body background is captured separately as frame_bg.
     function findFrameRoot() { return document.body; }
@@ -296,6 +328,13 @@ _EXTRACT_JS = r"""
         if (cs.backgroundImage.includes('gradient') && !hasElemChildren) return 'raster';
         // 3d transforms → raster
         if (cs.transform && (cs.transform.includes('matrix3d') || cs.transform.includes('perspective'))) return 'raster';
+        // Non-trivially ROTATED leaf → raster: figma-mcp-go's node rotation is
+        // applied opposite-sign to CSS and the native box stores the AABB (not the
+        // true unrotated size), so a rotated native shape renders wrong. Baking the
+        // rotation into the screenshot PNG reproduces it faithfully (same mechanism
+        // as SVG/gradient). Scope to leaves (no element children) so we never
+        // flatten a subtree; covers scene_22's rotated .domino cards.
+        if (!hasElemChildren && rotationDeg(cs.transform) > 0.5) return 'raster';
         // Leaf (no text/children to flatten) whose only visual extra is a CSS
         // border-triangle pseudo (▶ play icon) → rasterize so the pseudo renders.
         if (!hasDirectText && !hasElemChildren && hasBorderTrianglePseudo(el)) return 'raster';
@@ -399,6 +438,7 @@ _EXTRACT_JS = r"""
                 pseudos,
                 opacity: parseFloat(cs.opacity),
                 isGradientContainer: isGradientContainer,
+                textRect: hasDirectText ? textBoxOffset(el, x, y) : null,
             };
             out.push(elem);
             // Gradient container's bg-only PNG is captured later in Python via
@@ -1019,6 +1059,21 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
             "line_height": line_height,
             "effects": text_effects,
         }
+        # When text is painted directly on a plain box (rectangle/ellipse), `base`
+        # is the BOX geometry, not the text's. A single-word label that the browser
+        # lays out on one line OVERFLOWING a narrow fixed box would otherwise be
+        # (a) misread as multi-line (box height ≫ line height) and (b) resized to
+        # the box width → the builder force-wraps the word (scene_22 .domino
+        # "Understanding"/"Customers"). Replace with the text's ACTUAL rendered rect
+        # so line count + glyph position are faithful. Scoped to box+text without a
+        # frame (no element children) and unrotated (a rotated box's text AABB would
+        # fight the rotation node property).
+        tr = raw.get("textRect")
+        if tr and emit_shape and shape_type != "frame" and rotation == 0:
+            text_elem["x"] = round(base["x"] + tr["dx"])
+            text_elem["y"] = round(base["y"] + tr["dy"])
+            text_elem["width"] = tr["w"]
+            text_elem["height"] = tr["h"]
         elements_out.append(text_elem)
 
 
@@ -1027,7 +1082,6 @@ def _emit_raster_element(raw: dict, asset_path: str, uid_to_id: dict[str, str], 
     parent_id = uid_to_id.get(raw.get("parent_uid"))
     name_hint = raw.get("id") or (raw.get("className", "").split()[0] if raw.get("className") else raw["tag"])
     cs = raw.get("cssText", {})
-    rotation = _parse_transform_rotation(cs.get("transform", ""))
     # Bleed expansion (fix A): PNG is larger than DOM bbox to include glow/shadow
     # fade-out. Shift x/y up-left by bleed_l/bleed_t so visual center stays.
     bleed = raw.get("_bleed") or {"l": 0, "t": 0, "r": 0, "b": 0}
@@ -1041,7 +1095,13 @@ def _emit_raster_element(raw: dict, asset_path: str, uid_to_id: dict[str, str], 
         "y": raw["y"] - bt,
         "width": raw["w"] + bl + br,
         "height": raw["h"] + bt + bb,
-        "rotation": rotation,
+        # Rotation is already baked into the rasterized PNG: the screenshot captures
+        # the element's AABB region with the rotated content in place. Re-applying it
+        # as a node rotation would double-transform — and figma-mcp-go's rotate_nodes
+        # is OPPOSITE-sign to CSS (positive = counter-clockwise), so it actually
+        # CANCELS the baked rotation, rendering rotated rasters nearly upright
+        # (scene_11 cameras/icons). PNG = truth → node rotation 0.
+        "rotation": 0.0,
         # The element's own opacity is already baked into the rasterized PNG: the
         # isolation CSS resets only ANCESTOR opacity (data-isolate-ancestor), never
         # the isolate-root's. Re-applying it on the node would double-darken
@@ -1563,6 +1623,14 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
             continue
         if parent.get("clip_content") or _contains(parent, e):
             continue
+        # The child painted on top of (after) its original parent's own fill in
+        # the nested DOM/Figma tree. Once promoted to a sibling of that parent,
+        # Pass 4 sorts siblings by z — preserve "renders above its old container"
+        # by bumping z past the original parent's, or the frame's own fill would
+        # cover the now-sibling child (scene_23 .step-card swallowing its
+        # overflowing "UNDERSTAND" label).
+        original_parent_z = parent.get("z", 0)
+        e["z"] = max(e.get("z", 0), original_parent_z) + 0.5
         cur = parent
         while True:
             gp = spec_by_id.get(cur.get("parent_id"))
