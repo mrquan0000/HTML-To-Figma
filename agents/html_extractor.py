@@ -931,7 +931,13 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
             "stroke_align": "INSIDE",
             "corner_radii": corner_radii,
             "effects": effects,
-            "clip_content": clip_content or has_gradient_bg,
+            # Respect actual CSS overflow only. A gradient-bg container is NOT
+            # force-clipped: its bg PNG is exactly frame-sized (no bleed) with the
+            # rounded corners + border baked in, so it never overflows. Forcing
+            # clip would cut off children that legitimately overflow under
+            # overflow:visible — e.g. flex content taller than a fixed-height box
+            # (scene_20 node labels overflowing a 100px box).
+            "clip_content": clip_content,
         }
         elements_out.append(shape_elem)
 
@@ -1036,7 +1042,11 @@ def _emit_raster_element(raw: dict, asset_path: str, uid_to_id: dict[str, str], 
         "width": raw["w"] + bl + br,
         "height": raw["h"] + bt + bb,
         "rotation": rotation,
-        "opacity": round(raw.get("opacity", 1.0), 3),
+        # The element's own opacity is already baked into the rasterized PNG: the
+        # isolation CSS resets only ANCESTOR opacity (data-isolate-ancestor), never
+        # the isolate-root's. Re-applying it on the node would double-darken
+        # (e.g. scene_11 chaos icons at opacity:0.5 rendered ~0.25). PNG = truth.
+        "opacity": 1.0,
         "z": raw["z"],
         "image_path": asset_path,
     })
@@ -1528,6 +1538,41 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
         # is not itself in emitted set.
         if p and p not in emitted_raw_uids and _raw_uid_of(p) not in emitted_raw_uids:
             e["parent_id"] = _nearest_emitted_ancestor(p)
+
+    # Pass 3.5: escape unwanted Figma frame clipping. figma-mcp-go frames ALWAYS
+    # clip their children and expose no API to disable it. When a parent's CSS
+    # overflow is VISIBLE (clip_content=False) but a child's bbox extends beyond
+    # the parent box, the browser shows that overflow while a Figma frame would
+    # clip it (e.g. scene_20 .node: flex content 122px tall centered in a 100px
+    # box → icon overflows the top, label overflows the bottom). Reparent such a
+    # child to the nearest ancestor that geometrically contains it OR that
+    # legitimately clips (overflow:hidden — the browser clips there too, so it is
+    # faithful to stop). Absolute coords are preserved, so the visual position is
+    # unchanged; only the clipping parent changes. This can only REVEAL overflow
+    # the browser already shows, never hide anything.
+    spec_by_id = {e["id"]: e for e in elements_spec}
+    def _box(e):
+        return (e["x"], e["y"], e["x"] + e["width"], e["y"] + e["height"])
+    def _contains(p, c, tol=2):
+        px0, py0, px1, py1 = _box(p)
+        cx0, cy0, cx1, cy1 = _box(c)
+        return cx0 >= px0 - tol and cy0 >= py0 - tol and cx1 <= px1 + tol and cy1 <= py1 + tol
+    for e in elements_spec:
+        parent = spec_by_id.get(e.get("parent_id"))
+        if not parent or parent.get("type") != "frame":
+            continue
+        if parent.get("clip_content") or _contains(parent, e):
+            continue
+        cur = parent
+        while True:
+            gp = spec_by_id.get(cur.get("parent_id"))
+            if gp is None:
+                e["parent_id"] = cur.get("parent_id")  # promote to root level
+                break
+            if gp.get("clip_content") or _contains(gp, e):
+                e["parent_id"] = gp["id"]
+                break
+            cur = gp
 
     # Pass 4: topological / DFS-sibling-by-z ordering — parents before children,
     # siblings sorted by z ASC so lower-z renders below higher-z (matches CSS).
