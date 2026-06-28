@@ -136,6 +136,8 @@ _EXTRACT_JS = r"""
             textAlign: cs.textAlign, lineHeight: cs.lineHeight,
             letterSpacing: cs.letterSpacing, textDecorationLine: cs.textDecorationLine,
             webkitTextFillColor: cs.webkitTextFillColor || '',
+            webkitTextStrokeWidth: cs.webkitTextStrokeWidth || '',
+            webkitTextStrokeColor: cs.webkitTextStrokeColor || '',
             backgroundClip: cs.backgroundClip || cs.webkitBackgroundClip || '',
             content: pseudo ? cs.content : '',
         };
@@ -1048,6 +1050,16 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
         # (box-shadow stays on the emitted shape, if any). Lets glowing text stay
         # editable instead of being rasterized.
         text_effects = _parse_filter_drop_shadows(cs.get("filter", ""))
+        # -webkit-text-stroke (glyph rim/outline) → Figma text-node stroke, so the
+        # text stays editable with its outline (e.g. scene_18 glowing "?"). Figma
+        # text strokes paint centered on the glyph path like CSS text-stroke.
+        text_strokes = []
+        text_stroke_weight = 0
+        tsw = _px(cs.get("webkitTextStrokeWidth"))
+        tsc = _color_to_rgba(cs.get("webkitTextStrokeColor", ""))
+        if tsw > 0 and tsc and tsc.get("a", 0) > 0:
+            text_strokes = [{"type": "SOLID", "color": tsc}]
+            text_stroke_weight = tsw
         text_elem = {
             **base,
             "id": el_id + ("_t" if emit_shape else ""),
@@ -1058,6 +1070,9 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
             "text_align": text_align,
             "line_height": line_height,
             "effects": text_effects,
+            "strokes": text_strokes,
+            "stroke_weight": text_stroke_weight,
+            "stroke_align": "CENTER",
         }
         # When text is painted directly on a plain box (rectangle/ellipse), `base`
         # is the BOX geometry, not the text's. A single-word label that the browser
@@ -1081,7 +1096,6 @@ def _emit_raster_element(raw: dict, asset_path: str, uid_to_id: dict[str, str], 
     el_id = uid_to_id[raw["uid"]]
     parent_id = uid_to_id.get(raw.get("parent_uid"))
     name_hint = raw.get("id") or (raw.get("className", "").split()[0] if raw.get("className") else raw["tag"])
-    cs = raw.get("cssText", {})
     # Bleed expansion (fix A): PNG is larger than DOM bbox to include glow/shadow
     # fade-out. Shift x/y up-left by bleed_l/bleed_t so visual center stays.
     bleed = raw.get("_bleed") or {"l": 0, "t": 0, "r": 0, "b": 0}

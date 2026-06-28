@@ -521,6 +521,17 @@ class FigmaBuilder:
         self._apply_opacity_rotation(node_id, el, fill_alpha)
         # Glow / soft shadow from CSS filter:drop-shadow → native effect on the text
         self._apply_effects(node_id, el.get("effects") or [])
+        # -webkit-text-stroke → glyph outline on the text node (kept editable)
+        strokes = el.get("strokes") or []
+        if strokes and strokes[0].get("type") == "SOLID":
+            try:
+                self.client.call_tool("set_strokes", {
+                    "nodeId": node_id,
+                    "color": rgba_to_hex(strokes[0].get("color")),
+                    "strokeWeight": el.get("stroke_weight", 1) or 1,
+                })
+            except Exception as e:
+                self.warnings.append(f"set_strokes text {el['name']}: {e}")
         # Multi-run flag
         if is_multi_run:
             self.warnings.append(
