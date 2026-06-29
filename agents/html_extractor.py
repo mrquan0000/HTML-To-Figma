@@ -509,16 +509,21 @@ _EXTRACT_JS = r"""
 
 _DETECT_DESIGN_JS = r"""
 () => {
-    // Selectors that explicitly set BOTH width and height in px (stylesheets).
-    const fixedSelectors = [];
+    // Selectors that explicitly set BOTH width and height in px (stylesheets),
+    // keeping the AUTHORED px values so we can use them instead of the rendered
+    // box (which flex-shrink can squeeze below the design size — see below).
+    const fixedRules = [];
     for (const sheet of document.styleSheets) {
         let rules;
         try { rules = sheet.cssRules; } catch (e) { continue; }
         if (!rules) continue;
         for (const rule of rules) {
             if (rule.style && rule.style.width && rule.style.height
-                && rule.style.width.endsWith('px') && rule.style.height.endsWith('px')) {
-                if (rule.selectorText) fixedSelectors.push(rule.selectorText);
+                && rule.style.width.endsWith('px') && rule.style.height.endsWith('px')
+                && rule.selectorText) {
+                fixedRules.push({sel: rule.selectorText,
+                                 w: parseFloat(rule.style.width),
+                                 h: parseFloat(rule.style.height)});
             }
         }
     }
@@ -530,19 +535,26 @@ _DETECT_DESIGN_JS = r"""
             const v = parseFloat(cs.maxWidth);
             if (isFinite(v) && v > maxW) maxW = v;
         }
-        // Explicit fixed px width+height (inline style or matched rule)?
-        let fixed = (el.style.width.endsWith('px') && el.style.height.endsWith('px'));
-        if (!fixed) {
-            for (const sel of fixedSelectors) {
-                try { if (el.matches(sel)) { fixed = true; break; } } catch (e) {}
+        // Authored fixed px width+height (inline style or a matched stylesheet
+        // rule)? Use the AUTHORED values, NOT getBoundingClientRect: a fixed design
+        // canvas that is a flex item gets shrunk below its authored width when the
+        // probe viewport is narrower than the design (default flex-shrink:1) — e.g.
+        // a 1920px canvas probed at 1600px measures 1600, squeezing the whole layout
+        // (scene_24 title wrapped to 2 lines). Authored px is the design intent.
+        let aw = 0, ah = 0;
+        if (el.style.width.endsWith('px') && el.style.height.endsWith('px')) {
+            aw = parseFloat(el.style.width); ah = parseFloat(el.style.height);
+        } else {
+            for (const fr of fixedRules) {
+                try { if (el.matches(fr.sel)) { aw = fr.w; ah = fr.h; break; } } catch (e) {}
             }
         }
-        if (fixed) {
+        // ≥600px wide qualifies as a design canvas (skip small fixed boxes/icons).
+        if (aw >= 600 && aw * ah > canvasArea) {
             const r = el.getBoundingClientRect();
-            // ≥600px wide qualifies as a design canvas (skip small fixed boxes/icons).
-            if (r.width >= 600 && r.width * r.height > canvasArea) {
-                canvas = {width: Math.round(r.width), height: Math.round(r.height)};
-                canvasArea = r.width * r.height;
+            if (r.width > 0 && r.height > 0) {   // element actually rendered (not display:none)
+                canvas = {width: Math.round(aw), height: Math.round(ah)};
+                canvasArea = aw * ah;
             }
         }
     }
