@@ -1420,6 +1420,16 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
             // Returns padding (px) to add on each side beyond the element bbox.
             const cs = window.getComputedStyle(target);
             let bT = 0, bR = 0, bB = 0, bL = 0;
+            // Glow/shadow blur is a Gaussian; box-shadow & filter drop-shadow define
+            // their blur radius such that σ = blur/2. The visible falloff reaches ~0
+            // only at 3σ = 1.5×blur — capturing just 1×blur (=2σ) leaves ~5% opacity
+            // at the clip edge, producing a hard rectangular cutoff line. Expand to 3σ
+            // so the glow fades smoothly. (filter blur() below uses σ = radius, so its
+            // 3σ extent is 3×radius.)
+            // Plus a flat safety margin so the faint outermost tail of the glow
+            // (and 2x-DPI resampling) never touches the clip edge.
+            const GLOW_FALLOFF = 1.5;
+            const GLOW_PAD = 16;
             const shadow = cs.boxShadow;
             if (shadow && shadow !== 'none') {
                 for (const p of shadow.split(/,(?![^()]*\))/)) {
@@ -1427,7 +1437,7 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
                     const nums = (p.match(/-?\d+(?:\.\d+)?px/g) || []).map(s => parseFloat(s));
                     if (nums.length < 3) continue;
                     const [ox, oy, blur, spread = 0] = nums;
-                    const r = blur + spread;
+                    const r = blur * GLOW_FALLOFF + spread + GLOW_PAD;
                     bT = Math.max(bT, r - oy); bB = Math.max(bB, r + oy);
                     bL = Math.max(bL, r - ox); bR = Math.max(bR, r + ox);
                 }
@@ -1436,16 +1446,20 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
             if (filter && filter !== 'none') {
                 const blurM = filter.match(/blur\(([\d.]+)px\)/);
                 if (blurM) {
-                    const r = parseFloat(blurM[1]) * 3;
+                    const r = parseFloat(blurM[1]) * 3 + GLOW_PAD;
                     bT = Math.max(bT, r); bB = Math.max(bB, r);
                     bL = Math.max(bL, r); bR = Math.max(bR, r);
                 }
-                for (const m of filter.matchAll(/drop-shadow\(([^)]+)\)/g)) {
+                // Nested-paren-aware: drop-shadow colors are functions like
+                // rgba(…)/hsl(…) whose ) must NOT terminate the match. A plain
+                // [^)]+ stops at rgba's ), dropping the shadow entirely (bleed=0).
+                for (const m of filter.matchAll(/drop-shadow\(((?:[^()]|\([^()]*\))*)\)/g)) {
                     const nums = (m[1].match(/-?\d+(?:\.\d+)?px/g) || []).map(s => parseFloat(s));
                     if (nums.length >= 3) {
                         const [ox, oy, blur] = nums;
-                        bT = Math.max(bT, blur - oy); bB = Math.max(bB, blur + oy);
-                        bL = Math.max(bL, blur - ox); bR = Math.max(bR, blur + ox);
+                        const r = blur * GLOW_FALLOFF + GLOW_PAD;
+                        bT = Math.max(bT, r - oy); bB = Math.max(bB, r + oy);
+                        bL = Math.max(bL, r - ox); bR = Math.max(bR, r + ox);
                     }
                 }
             }
