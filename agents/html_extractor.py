@@ -923,6 +923,23 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
 
     # ─── Effects ────────────────────────────────────────────────────────────
     effects = _parse_shadows(cs.get("boxShadow", ""))
+    # A hard-rim outset box-shadow (≈0 offset, ≈0 blur, positive spread) — e.g.
+    # `box-shadow: 0 0 0 1px rgba(...)` — is an OUTLINE, not a shadow. Figma paints
+    # DROP_SHADOW as the layer's silhouette BEHIND the layer, so on a translucent
+    # fill it floods the whole interior with the shadow color (CSS never does this:
+    # the box occludes its own outset shadow, only the 1px ring peeks out). Treat it
+    # as an outline: adopt it as the stroke if the element has none, otherwise drop
+    # it (the existing border already supplies the rim) — avoids both the flood and
+    # a doubled ring.
+    _rim = [e for e in effects
+            if e["type"] == "DROP_SHADOW" and e["radius"] <= 0.5
+            and abs(e["offset"]["x"]) <= 0.5 and abs(e["offset"]["y"]) <= 0.5
+            and e["spread"] > 0]
+    if _rim:
+        effects = [e for e in effects if e not in _rim]
+        if not strokes:
+            strokes = [{"type": "SOLID", "color": _rim[0]["color"]}]
+            stroke_weight = max(1, round(_rim[0]["spread"]))
     bf = cs.get("backdropFilter", "")
     bm = re.search(r"blur\(([\d.]+)px\)", bf)
     if bm:

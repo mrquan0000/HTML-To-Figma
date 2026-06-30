@@ -161,6 +161,16 @@ def rgba_to_hex(c: dict | None) -> str | None:
     return f"#{r:02X}{g:02X}{b:02X}"
 
 
+def rgba_to_hex8(c: dict | None) -> str | None:
+    """Convert {r,g,b,a} → '#RRGGBBAA'. figma-mcp-go encodes paint alpha in the
+    hex (get_node returns fills like '#2d1e0f26'); set_strokes has no opacity
+    param, so a translucent stroke must carry its alpha in the hex itself."""
+    if not c:
+        return None
+    a = int(round(c.get("a", 1.0) * 255))
+    return f"{rgba_to_hex(c)}{a:02X}"
+
+
 def first_solid_fill(fills: list[dict] | None) -> tuple[str | None, float]:
     """Return (hex, alpha) of first SOLID fill, else (None, 1.0)."""
     for f in fills or []:
@@ -580,7 +590,10 @@ class FigmaBuilder:
         if strokes:
             s = strokes[0]
             if s.get("type") == "SOLID":
-                hex_color = rgba_to_hex(s.get("color"))
+                # 8-digit hex carries the stroke alpha (set_strokes has no opacity
+                # param). A translucent border — e.g. rgba(246,199,30,0.2) glass rim
+                # — must NOT render as opaque bright gold.
+                hex_color = rgba_to_hex8(s.get("color"))
                 weight = el.get("stroke_weight", 1) or 1
                 try:
                     self.client.call_tool("set_strokes", {
