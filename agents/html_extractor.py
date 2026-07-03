@@ -1233,19 +1233,44 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
                 page.wait_for_timeout(400)  # let layout reflow
             viewport_width = chosen
 
-        # Freeze CSS animations/transitions so element screenshots don't time out
-        # on "element is not stable". We disable both the animation property and
-        # the transform/box-shadow that animations mutate.
+        # Step 1 (JS): Jump every animation to its OWN natural end state.
+        # Web Animations API .finish() advances each CSS @keyframes animation to
+        # its individual 100% keyframe, regardless of its duration — no fixed wait
+        # needed. Each graphic ends at its own end time, not a shared 2s cutoff.
+        page.evaluate("""() => {
+            // CSS @keyframes / WAAPI: finish each animation at its own end time
+            for (const a of document.getAnimations()) {
+                try {
+                    // Force fill:both so the 100% keyframe state persists after finish
+                    if (a.effect) a.effect.updateTiming({ fill: 'both' });
+                    a.finish();  // jump to this animation's own end state
+                    a.pause();   // lock there
+                } catch (e) {}
+            }
+            // GSAP: advance its internal timeline far into the future
+            try {
+                if (window.gsap) window.gsap.globalTimeline.seek(99999, false).pause();
+            } catch (e) {}
+            // anime.js: seek each tween to its own duration
+            try {
+                if (window.anime)
+                    window.anime.running.slice().forEach(a => { a.seek(a.duration); a.pause(); });
+            } catch (e) {}
+            // Freeze requestAnimationFrame so no loop can mutate state after this point
+            window.requestAnimationFrame = function () { return 0; };
+        }""")
+        page.wait_for_timeout(200)  # let browser paint the finished states
+
+        # Step 2 (CSS): prevent NEW animations/transitions from triggering
+        # during the per-element screenshot loop (element isolation + raster capture).
         page.add_style_tag(content="""
             *, *::before, *::after {
-                animation-duration: 0s !important;
-                animation-delay: 0s !important;
-                animation-iteration-count: 1 !important;
                 animation-play-state: paused !important;
-                transition: none !important;
+                transition-duration: 0s !important;
+                transition-delay: 0s !important;
             }
         """)
-        page.wait_for_timeout(200)
+        page.wait_for_timeout(100)
 
         result = page.evaluate(_EXTRACT_JS)
         raw_elements = result["elements"]

@@ -219,7 +219,7 @@ Tự động từ extractor:
 
 - venv: `.venv/bin/python`
 - figma-mcp-go config: `.mcp.json` (Claude session) + spawn riêng từ builder
-- Extractor tự pause CSS animations/transitions trước khi screenshot (tránh "element is not stable")
+- Extractor xử lý HTML động: dùng Web Animations API `.finish()` để jump từng animation đến điểm cuối của riêng nó (không dùng fixed wait), sau đó freeze RAF và kill transitions — đảm bảo mọi element hiện đủ tại trạng thái cuối trước khi extract
 - Builder spawn instance MCP riêng — figma-mcp-go có cơ chế LEADER/FOLLOWER, an toàn chạy song song với Claude's MCP
 - Coords trong spec đã normalize relative to bounding box của tất cả visible elements
 - Output PNG raster ở 2x DPI cho crisp visual
