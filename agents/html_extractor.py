@@ -613,8 +613,8 @@ _FREEZE_ANIMATIONS_JS = r"""
                     (best, k) => (k.opacity >= best.opacity ? k : best), opacityKfs[0]);
                 const timing = a.effect.getComputedTiming();
                 const duration = typeof timing.duration === 'number' ? timing.duration : 0;
-                a.currentTime = (timing.delay || 0) + peak.offset * duration;
                 a.pause();
+                a.currentTime = (timing.delay || 0) + peak.offset * duration;
             } else {
                 // No opacity keyframe (pure transform, e.g. a camera push) —
                 // its "peak" is just its natural finished end state.
