@@ -515,6 +515,15 @@ class FigmaBuilder:
             self.warnings.append(f"create_text '{el['name']}': no id returned")
             return
         self.uid_to_node_id[el["id"]] = node_id
+        # Figma text defaults to an opaque fill. A run with no design fill (e.g.
+        # rim-only text with CSS color:transparent, glyph body invisible, only
+        # -webkit-text-stroke shows) must be made transparent, else the default
+        # paints a solid glyph over the stroke/underlying layers. See _create_rectangle.
+        if not fill_hex:
+            try:
+                self.client.call_tool("set_fills", {"nodeId": node_id, "color": "#000000", "opacity": 0})
+            except Exception as e:
+                self.warnings.append(f"transparent fill '{el['name']}': {e}")
         # Resize only multi-line/wrapping paragraphs to their laid-out box.
         # Single-line text keeps Figma's auto-width so it never wraps/clips when
         # the platform font renders slightly wider than Chromium measured.

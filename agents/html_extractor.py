@@ -842,8 +842,12 @@ def _build_text_runs(raw_runs: list[dict]) -> list[dict]:
             if grad:
                 fills = [grad]
         if fills is None:
-            color = _color_to_rgba(r.get("color", "")) or {"r": 0, "g": 0, "b": 0, "a": 1.0}
-            fills = [{"type": "SOLID", "color": color}]
+            # None means genuinely transparent/invalid CSS color (e.g. rim-only
+            # text with color:transparent) — leave fills empty rather than
+            # defaulting to opaque black, which would paint a solid glyph body
+            # over what the browser actually renders as invisible.
+            color = _color_to_rgba(r.get("color", ""))
+            fills = [{"type": "SOLID", "color": color}] if color else []
         out.append({
             "text": text,
             "font_family": _first_font_family(r.get("fontFamily", "")),
