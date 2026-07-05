@@ -550,7 +550,12 @@ _DETECT_DESIGN_JS = r"""
             }
         }
         // ≥600px wide qualifies as a design canvas (skip small fixed boxes/icons).
-        if (aw >= 600 && aw * ah > canvasArea) {
+        // Must also wrap content (children.length > 0): a real design canvas always
+        // contains the scene's elements, whereas decorative effect divs (glow/blur/
+        // vignette overlays) are empty leaves that can coincidentally match the same
+        // authored px size (e.g. .ambient-glow--1 700×700 vs the true fit-content
+        // canvas — scene_9 mispicked the glow as "the" 700×700 canvas).
+        if (aw >= 600 && aw * ah > canvasArea && el.children.length > 0) {
             const r = el.getBoundingClientRect();
             if (r.width > 0 && r.height > 0) {   // element actually rendered (not display:none)
                 canvas = {width: Math.round(aw), height: Math.round(ah)};
