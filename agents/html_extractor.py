@@ -583,6 +583,32 @@ _DETECT_DESIGN_JS = r"""
 """
 
 
+_FREEZE_ANIMATIONS_JS = r"""
+() => {
+    // CSS @keyframes / WAAPI: finish each animation at its own end time
+    for (const a of document.getAnimations()) {
+        try {
+            // Force fill:both so the 100% keyframe state persists after finish
+            if (a.effect) a.effect.updateTiming({ fill: 'both' });
+            a.finish();  // jump to this animation's own end state
+            a.pause();   // lock there
+        } catch (e) {}
+    }
+    // GSAP: advance its internal timeline far into the future
+    try {
+        if (window.gsap) window.gsap.globalTimeline.seek(99999, false).pause();
+    } catch (e) {}
+    // anime.js: seek each tween to its own duration
+    try {
+        if (window.anime)
+            window.anime.running.slice().forEach(a => { a.seek(a.duration); a.pause(); });
+    } catch (e) {}
+    // Freeze requestAnimationFrame so no loop can mutate state after this point
+    window.requestAnimationFrame = function () { return 0; };
+}
+"""
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 # CSS parsers (Python side)
 # ═════════════════════════════════════════════════════════════════════════════
@@ -1242,33 +1268,10 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
                 page.wait_for_timeout(400)  # let layout reflow
             viewport_width = chosen
 
-        # Step 1 (JS): Jump every animation to its OWN natural end state.
-        # Web Animations API .finish() advances each CSS @keyframes animation to
-        # its individual 100% keyframe, regardless of its duration — no fixed wait
-        # needed. Each graphic ends at its own end time, not a shared 2s cutoff.
-        page.evaluate("""() => {
-            // CSS @keyframes / WAAPI: finish each animation at its own end time
-            for (const a of document.getAnimations()) {
-                try {
-                    // Force fill:both so the 100% keyframe state persists after finish
-                    if (a.effect) a.effect.updateTiming({ fill: 'both' });
-                    a.finish();  // jump to this animation's own end state
-                    a.pause();   // lock there
-                } catch (e) {}
-            }
-            // GSAP: advance its internal timeline far into the future
-            try {
-                if (window.gsap) window.gsap.globalTimeline.seek(99999, false).pause();
-            } catch (e) {}
-            // anime.js: seek each tween to its own duration
-            try {
-                if (window.anime)
-                    window.anime.running.slice().forEach(a => { a.seek(a.duration); a.pause(); });
-            } catch (e) {}
-            // Freeze requestAnimationFrame so no loop can mutate state after this point
-            window.requestAnimationFrame = function () { return 0; };
-        }""")
-        page.wait_for_timeout(200)  # let browser paint the finished states
+        # Step 1 (JS): Jump every animation to its OWN peak-opacity moment (or
+        # natural end state if it has no opacity keyframe). See _FREEZE_ANIMATIONS_JS.
+        page.evaluate(_FREEZE_ANIMATIONS_JS)
+        page.wait_for_timeout(200)  # let browser paint the frozen states
 
         # Step 2 (CSS): prevent NEW animations/transitions from triggering
         # during the per-element screenshot loop (element isolation + raster capture).
