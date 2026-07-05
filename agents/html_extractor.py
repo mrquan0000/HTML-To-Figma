@@ -1615,6 +1615,13 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
             page.set_viewport_size({"width": _vp["width"], "height": _target_h})
             page.wait_for_timeout(300)  # let layout settle after resize
 
+        # frameRoot's viewport-relative origin (matches the DOM walk's `frameRect`,
+        # findFrameRoot() always returns document.body) — needed below to convert
+        # _GET_BBOX_JS's absolute rect into the same frame-relative space every
+        # other element's x/y already went through in the walk.
+        _frame_rect = page.evaluate(
+            "() => { const r = document.body.getBoundingClientRect(); return {left: r.left, top: r.top}; }")
+
         # Raster fallbacks — extract walk already tagged each element with data-extract-uid
         raster_targets = [r for r in raw_elements if r.get("kind") == "raster"]
         for raw in raster_targets:
@@ -1631,8 +1638,8 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
                 # Sync geometry to the rect ACTUALLY captured — may be larger than
                 # the DOM-walk's target-only rect when a descendant (e.g. a
                 # position:absolute pin icon) escapes the target's own layout box.
-                raw["x"] = result["rect"]["x"] - origin_x
-                raw["y"] = result["rect"]["y"] - origin_y
+                raw["x"] = (result["rect"]["x"] - _frame_rect["left"]) - origin_x
+                raw["y"] = (result["rect"]["y"] - _frame_rect["top"]) - origin_y
                 raw["w"] = result["rect"]["w"]
                 raw["h"] = result["rect"]["h"]
                 raw["_asset_filename"] = png_path.name
