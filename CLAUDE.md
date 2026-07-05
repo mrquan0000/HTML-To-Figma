@@ -219,7 +219,7 @@ Tự động từ extractor:
 
 - venv: `.venv/bin/python`
 - figma-mcp-go config: `.mcp.json` (Claude session) + spawn riêng từ builder
-- Extractor xử lý HTML động: dùng Web Animations API `.finish()` để jump từng animation đến điểm cuối của riêng nó (không dùng fixed wait), sau đó freeze RAF và kill transitions — đảm bảo mọi element hiện đủ tại trạng thái cuối trước khi extract
+- Extractor xử lý HTML động: dùng Web Animations API tìm keyframe có opacity CAO NHẤT cho mỗi animation rồi seek tới đó (không dùng fixed wait) — animation reveal thường (0→1) vẫn dừng ở 100% như cũ, nhưng animation "lùi/mờ" (vd fadeBack 1→0.22) dừng đúng lúc đỉnh thay vì lúc mờ nhất; sau đó freeze RAF và kill transitions. `utils/render_html.py` dùng logic giống hệt để ảnh QC tham chiếu khớp với Figma build. Animation không có opacity keyframe (thuần transform) vẫn dùng `.finish()` như cũ.
 - Builder spawn instance MCP riêng — figma-mcp-go có cơ chế LEADER/FOLLOWER, an toàn chạy song song với Claude's MCP
 - Coords trong spec đã normalize relative to bounding box của tất cả visible elements
 - Output PNG raster ở 2x DPI cho crisp visual
