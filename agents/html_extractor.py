@@ -1541,8 +1541,20 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
         (uid) => {
             const el = document.querySelector(`[data-extract-uid="${uid}"]`);
             if (!el) return null;
-            const r = el.getBoundingClientRect();
-            return {x: r.x, y: r.y, w: r.width, h: r.height};
+            // Union of the target's own box and every descendant's box — a
+            // position:absolute descendant (e.g. a pin icon inside a flex
+            // wrapper) doesn't contribute to the wrapper's own auto-computed
+            // size, so using only the target's own rect can crop it out of
+            // the raster capture.
+            const rects = [el, ...el.querySelectorAll('*')].map(e => e.getBoundingClientRect());
+            let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+            for (const r of rects) {
+                if (r.width === 0 || r.height === 0) continue;
+                x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top);
+                x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom);
+            }
+            if (x0 === Infinity) return null;
+            return {x: x0, y: y0, w: x1 - x0, h: y1 - y0};
         }
         """
 
@@ -1564,7 +1576,9 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
         def _isolated_screenshot(uid_str: str, png_path: Path, expand_bleed: bool = True):
             """Isolate target + screenshot. If expand_bleed, clip is enlarged by
             CSS ink-extent so glow/shadow aren't cut to rectangular halo.
-            Returns dict {l,t,r,b} of bleed actually applied, or None on failure."""
+            Returns dict {l,t,r,b} of bleed actually applied, plus the raw
+            target rect (viewport-relative, matches rectOf()'s convention)
+            used to build the clip, or None on failure."""
             bleed_info = page.evaluate(_ISOLATE_JS, [uid_str, backing_css, backing_max_area])
             try:
                 if bleed_info is None:
@@ -1584,7 +1598,7 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
                     "height": rect["h"] + bt + bb,
                 }
                 page.screenshot(path=str(png_path), clip=clip, omit_background=True)
-                return {"l": bl, "t": bt, "r": br, "b": bb}
+                return {"l": bl, "t": bt, "r": br, "b": bb, "rect": rect}
             finally:
                 page.evaluate(_RESTORE_JS)
 
@@ -1610,12 +1624,19 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
                     warnings.append(f"raster: uid {uid_str} not found in DOM")
                     continue
                 png_path = assets_path / f"{uid_str}.png"
-                bleed = _isolated_screenshot(uid_str, png_path, expand_bleed=True)
-                if bleed is None:
+                result = _isolated_screenshot(uid_str, png_path, expand_bleed=True)
+                if result is None:
                     warnings.append(f"raster: uid {uid_str} isolation failed")
                     continue
+                # Sync geometry to the rect ACTUALLY captured — may be larger than
+                # the DOM-walk's target-only rect when a descendant (e.g. a
+                # position:absolute pin icon) escapes the target's own layout box.
+                raw["x"] = result["rect"]["x"]
+                raw["y"] = result["rect"]["y"]
+                raw["w"] = result["rect"]["w"]
+                raw["h"] = result["rect"]["h"]
                 raw["_asset_filename"] = png_path.name
-                raw["_bleed"] = bleed
+                raw["_bleed"] = {"l": result["l"], "t": result["t"], "r": result["r"], "b": result["b"]}
             except Exception as e:
                 warnings.append(f"raster screenshot {uid_str} failed: {e}")
 
