@@ -1631,8 +1631,8 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
                 # Sync geometry to the rect ACTUALLY captured — may be larger than
                 # the DOM-walk's target-only rect when a descendant (e.g. a
                 # position:absolute pin icon) escapes the target's own layout box.
-                raw["x"] = result["rect"]["x"]
-                raw["y"] = result["rect"]["y"]
+                raw["x"] = result["rect"]["x"] - origin_x
+                raw["y"] = result["rect"]["y"] - origin_y
                 raw["w"] = result["rect"]["w"]
                 raw["h"] = result["rect"]["h"]
                 raw["_asset_filename"] = png_path.name
