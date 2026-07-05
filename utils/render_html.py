@@ -38,15 +38,34 @@ def main():
         page.goto(url, wait_until="networkidle")
         page.wait_for_timeout(400)
 
-        # Jump every animation to its OWN end state (mirrors extractor's Step 1).
-        # Using animation:none!important here would reset elements to their
-        # un-animated base state instead of the animation's final keyframe.
+        # Jump every animation to its OWN peak-opacity moment (or natural end
+        # state if it has no opacity keyframe) — mirrors extractor's
+        # _FREEZE_ANIMATIONS_JS in agents/html_extractor.py exactly, so the QC
+        # reference reflects the same frozen state as the Figma build.
         page.evaluate("""() => {
             for (const a of document.getAnimations()) {
                 try {
                     if (a.effect) a.effect.updateTiming({ fill: 'both' });
-                    a.finish();
-                    a.pause();
+                    const kfs = (a.effect && a.effect.getKeyframes) ? a.effect.getKeyframes() : [];
+                    const opacityKfs = kfs
+                        .map((k, i) => ({
+                            offset: (k.offset !== null && k.offset !== undefined)
+                                ? k.offset : i / Math.max(1, kfs.length - 1),
+                            opacity: k.opacity,
+                        }))
+                        .filter(k => k.opacity !== undefined)
+                        .map(k => ({ offset: k.offset, opacity: parseFloat(k.opacity) }));
+                    if (opacityKfs.length > 0) {
+                        const peak = opacityKfs.reduce(
+                            (best, k) => (k.opacity >= best.opacity ? k : best), opacityKfs[0]);
+                        const timing = a.effect.getComputedTiming();
+                        const duration = typeof timing.duration === 'number' ? timing.duration : 0;
+                        a.pause();
+                        a.currentTime = (timing.delay || 0) + peak.offset * duration;
+                    } else {
+                        a.finish();
+                        a.pause();
+                    }
                 } catch (e) {}
             }
             try {
