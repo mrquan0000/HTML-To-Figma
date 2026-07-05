@@ -38,8 +38,37 @@ def main():
         page.goto(url, wait_until="networkidle")
         page.wait_for_timeout(400)
 
-        # Pause CSS animations/transitions for a stable frame (mirrors extractor).
-        page.add_style_tag(content="*{animation:none!important;transition:none!important}")
+        # Jump every animation to its OWN end state (mirrors extractor's Step 1).
+        # Using animation:none!important here would reset elements to their
+        # un-animated base state instead of the animation's final keyframe.
+        page.evaluate("""() => {
+            for (const a of document.getAnimations()) {
+                try {
+                    if (a.effect) a.effect.updateTiming({ fill: 'both' });
+                    a.finish();
+                    a.pause();
+                } catch (e) {}
+            }
+            try {
+                if (window.gsap) window.gsap.globalTimeline.seek(99999, false).pause();
+            } catch (e) {}
+            try {
+                if (window.anime)
+                    window.anime.running.slice().forEach(a => { a.seek(a.duration); a.pause(); });
+            } catch (e) {}
+            window.requestAnimationFrame = function () { return 0; };
+        }""")
+        page.wait_for_timeout(200)
+
+        # Prevent NEW animations/transitions from triggering before the screenshot.
+        page.add_style_tag(content="""
+            *, *::before, *::after {
+                animation-play-state: paused !important;
+                transition-duration: 0s !important;
+                transition-delay: 0s !important;
+            }
+        """)
+        page.wait_for_timeout(100)
 
         # Clip to the actual rendered content box of <body> so the PNG matches
         # what the extractor normalizes to (bounding box of visible content).
