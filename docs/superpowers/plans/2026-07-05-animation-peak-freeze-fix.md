@@ -123,6 +123,78 @@ wrap element height: 148
 PASS
 ```
 
+**⚠️ Correction discovered during implementation (2026-07-05):** Step 4 as originally written does not pass with only the `_GET_BBOX_JS` edit. `_GET_BBOX_JS`'s return value is used **only** to build the `page.screenshot(clip=...)` rectangle inside `_isolated_screenshot` (`agents/html_extractor.py`, ~line 1568-1589) — it controls what pixels land in the PNG, which the fix above does correctly fix (verified: the PNG file itself grows to the right size). But the **spec metadata** (`width`/`height` on the emitted element, which is what the verification script reads and what becomes the image node's box size in Figma) comes from a *different, earlier* value: `raw["w"]`/`raw["h"]`, set once during the initial DOM-walk pass by `rectOf(el)` (line 146: `el.getBoundingClientRect()` on the target alone, never touching descendants) at line 365. `_isolated_screenshot`'s return (just `{l,t,r,b}` bleed padding) never flows back into `raw["w"]`/`raw["h"]`. Net effect without this correction: the PNG file is captured correctly, but the declared box stays at the old (too-small) size — worse than the original bug, since now the PNG and its declared box actively disagree (Figma would squish the correctly-captured image into the stale small box).
+
+**Fix requires touching two more spots, both still inside `extract()`:**
+
+1. `_isolated_screenshot` (`agents/html_extractor.py`, the function containing `_GET_BBOX_JS`'s call site) must also return the `rect` it computed, not just the bleed dict:
+
+```python
+        def _isolated_screenshot(uid_str: str, png_path: Path, expand_bleed: bool = True):
+            """Isolate target + screenshot. If expand_bleed, clip is enlarged by
+            CSS ink-extent so glow/shadow aren't cut to rectangular halo.
+            Returns dict {l,t,r,b,rect} — bleed actually applied plus the raw
+            target rect (viewport-relative, matches rectOf()'s convention) used
+            to build the clip — or None on failure."""
+            bleed_info = page.evaluate(_ISOLATE_JS, [uid_str, backing_css, backing_max_area])
+            try:
+                if bleed_info is None:
+                    return None
+                rect = page.evaluate(_GET_BBOX_JS, uid_str)
+                if rect is None or rect["w"] < 1 or rect["h"] < 1:
+                    return None
+                if expand_bleed:
+                    bl, bt = bleed_info["bleedL"], bleed_info["bleedT"]
+                    br, bb = bleed_info["bleedR"], bleed_info["bleedB"]
+                else:
+                    bl = bt = br = bb = 0
+                clip = {
+                    "x": max(0.0, rect["x"] - bl),
+                    "y": max(0.0, rect["y"] - bt),
+                    "width": rect["w"] + bl + br,
+                    "height": rect["h"] + bt + bb,
+                }
+                page.screenshot(path=str(png_path), clip=clip, omit_background=True)
+                return {"l": bl, "t": bt, "r": br, "b": bb, "rect": rect}
+            finally:
+                page.evaluate(_RESTORE_JS)
+```
+
+(Only the final `return` line changes — added `, "rect": rect`. Everything else in this function is unchanged.)
+
+2. The `raster_targets` loop (the **first** call site of `_isolated_screenshot`, `expand_bleed=True` — NOT the second `grad_containers` bg-only-PNG call site a bit further down, which must stay untouched since a gradient container's bg is deliberately meant to fill exactly its own box) must sync `raw["x"]/["y"]/["w"]/["h"]` from the returned rect:
+
+```python
+        # Raster fallbacks — extract walk already tagged each element with data-extract-uid
+        raster_targets = [r for r in raw_elements if r.get("kind") == "raster"]
+        for raw in raster_targets:
+            uid_str = raw["uid"]
+            try:
+                if page.locator(f'[data-extract-uid="{uid_str}"]').count() == 0:
+                    warnings.append(f"raster: uid {uid_str} not found in DOM")
+                    continue
+                png_path = assets_path / f"{uid_str}.png"
+                result = _isolated_screenshot(uid_str, png_path, expand_bleed=True)
+                if result is None:
+                    warnings.append(f"raster: uid {uid_str} isolation failed")
+                    continue
+                # Sync geometry to the rect ACTUALLY captured — may be larger than
+                # the DOM-walk's target-only rect when a descendant (e.g. a
+                # position:absolute pin icon) escapes the target's own layout box.
+                raw["x"] = result["rect"]["x"]
+                raw["y"] = result["rect"]["y"]
+                raw["w"] = result["rect"]["w"]
+                raw["h"] = result["rect"]["h"]
+                raw["_asset_filename"] = png_path.name
+                raw["_bleed"] = {"l": result["l"], "t": result["t"], "r": result["r"], "b": result["b"]}
+            except Exception as e:
+                warnings.append(f"raster screenshot {uid_str} failed: {e}")
+```
+
+(This replaces the loop body between `png_path = assets_path / f"{uid_str}.png"` and the `except` clause — the surrounding `for`/`try`/`except` structure and the `if page.locator(...).count() == 0` guard above it are unchanged.)
+
+After this correction, re-run Step 4's verification script — it should now print `wrap element height: 148` and `PASS`, matching the originally-documented expectation.
+
 - [ ] **Step 5: Commit**
 
 ```bash
@@ -133,7 +205,9 @@ fix(html_extractor): raster bbox includes absolutely-positioned descendants
 _GET_BBOX_JS only measured the raster target's own getBoundingClientRect(),
 missing position:absolute children that escape the target's auto-computed
 layout box (e.g. a pin icon inside a flex wrapper) — cropping them out of
-the captured PNG. Now unions the target's box with every descendant's box.
+the captured PNG. Now unions the target's box with every descendant's box,
+and _isolated_screenshot's caller syncs raw x/y/w/h to that union rect so
+the emitted spec metadata (not just the PNG pixels) reflects it too.
 EOF
 )"
 ```
