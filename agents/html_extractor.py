@@ -328,8 +328,30 @@ _EXTRACT_JS = r"""
             && cs.backgroundImage.includes('gradient'))      return 'raster';
         // Pure leaf with gradient bg (no element children) → raster whole element
         if (cs.backgroundImage.includes('gradient') && !hasElemChildren) return 'raster';
-        // 3d transforms → raster
-        if (cs.transform && (cs.transform.includes('matrix3d') || cs.transform.includes('perspective'))) return 'raster';
+        // 3d transforms → raster, UNLESS the matrix3d is only a perspective-divisor
+        // artifact with no real 3D rotation/scale/translation. An animation
+        // declared with `perspective(N) translateX(...) scale(...)` resolves its
+        // computed transform to matrix3d(...) even once translateX/scale settle
+        // back to their neutral values — leaving only the perspective term (the
+        // d3 component, -1/N) non-identity (e.g. scene_18's cameraSlideRight at
+        // its 100% keyframe: matrix3d(1,0,0,0, 0,1,0,0, 0,0,1,-1/1400, 0,0,0,1)).
+        // That's visually indistinguishable from transform:none, so only raster
+        // when the 3×3 rotation/scale submatrix or the translation actually
+        // deviates from identity.
+        if (cs.transform && (cs.transform.includes('matrix3d') || cs.transform.includes('perspective'))) {
+            const m3d = cs.transform.match(/matrix3d\(([^)]+)\)/);
+            let isIdentity3d = false;
+            if (m3d) {
+                const v = m3d[1].split(',').map(s => parseFloat(s.trim()));
+                const EPS = 1e-4;
+                const near = (a, b) => Math.abs(a - b) < EPS;
+                isIdentity3d = near(v[0], 1) && near(v[1], 0) && near(v[2], 0)
+                    && near(v[4], 0) && near(v[5], 1) && near(v[6], 0)
+                    && near(v[8], 0) && near(v[9], 0) && near(v[10], 1)
+                    && near(v[12], 0) && near(v[13], 0) && near(v[14], 0);
+            }
+            if (!isIdentity3d) return 'raster';
+        }
         // Non-trivially ROTATED leaf → raster: figma-mcp-go's node rotation is
         // applied opposite-sign to CSS and the native box stores the AABB (not the
         // true unrotated size), so a rotated native shape renders wrong. Baking the
