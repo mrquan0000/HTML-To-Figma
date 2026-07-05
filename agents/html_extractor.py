@@ -585,16 +585,46 @@ _DETECT_DESIGN_JS = r"""
 
 _FREEZE_ANIMATIONS_JS = r"""
 () => {
-    // CSS @keyframes / WAAPI: finish each animation at its own end time
+    // CSS @keyframes / WAAPI: for each animation, find the keyframe with the
+    // HIGHEST opacity value and seek there — the true "peak" moment, not just
+    // the 100% keyframe. A plain reveal (0→1) still peaks at 100% (unchanged
+    // behavior). A "recede" beat (e.g. fadeBack: 1→0.22, dimming to hand off
+    // to the next storytelling beat) peaks at its 0% keyframe instead. A
+    // mid-timeline flash/pulse peaks wherever its opacity is highest, even
+    // if that's neither its start nor its end.
     for (const a of document.getAnimations()) {
         try {
-            // Force fill:both so the 100% keyframe state persists after finish
+            // Force fill:both so the seeked/finished state persists afterward
             if (a.effect) a.effect.updateTiming({ fill: 'both' });
-            a.finish();  // jump to this animation's own end state
-            a.pause();   // lock there
+            const kfs = (a.effect && a.effect.getKeyframes) ? a.effect.getKeyframes() : [];
+            const opacityKfs = kfs
+                .map((k, i) => ({
+                    offset: (k.offset !== null && k.offset !== undefined)
+                        ? k.offset : i / Math.max(1, kfs.length - 1),
+                    opacity: k.opacity,
+                }))
+                .filter(k => k.opacity !== undefined)
+                .map(k => ({ offset: k.offset, opacity: parseFloat(k.opacity) }));
+            if (opacityKfs.length > 0) {
+                // Last keyframe achieving the max value — ties favor the later
+                // one, so a plain reveal that holds opacity:1 through to 100%
+                // still resolves to its natural end (no behavior change there).
+                const peak = opacityKfs.reduce(
+                    (best, k) => (k.opacity >= best.opacity ? k : best), opacityKfs[0]);
+                const timing = a.effect.getComputedTiming();
+                const duration = typeof timing.duration === 'number' ? timing.duration : 0;
+                a.currentTime = (timing.delay || 0) + peak.offset * duration;
+                a.pause();
+            } else {
+                // No opacity keyframe (pure transform, e.g. a camera push) —
+                // its "peak" is just its natural finished end state.
+                a.finish();
+                a.pause();
+            }
         } catch (e) {}
     }
-    // GSAP: advance its internal timeline far into the future
+    // GSAP: advance its internal timeline far into the future. Peak-seeking
+    // for GSAP-driven timelines is a separate follow-up, not implemented here.
     try {
         if (window.gsap) window.gsap.globalTimeline.seek(99999, false).pause();
     } catch (e) {}
