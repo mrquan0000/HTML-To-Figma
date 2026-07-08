@@ -101,9 +101,37 @@ _EXTRACT_JS = r"""
     let uidCounter = 0;
     function uid() { return 'e' + (uidCounter++); }
 
-    function styleSnapshot(el, pseudo) {
+    // CSS `filter: brightness(N)` is a linear R/G/B multiplier (alpha untouched).
+    // Baking it into a color string lets a brightness-filtered container stay
+    // NATIVE (shape+icon+text as separate editable Figma layers) instead of
+    // rasterizing the whole subtree to reproduce the dimming.
+    function applyBrightness(colorStr, mul) {
+        if (mul === 1 || !colorStr) return colorStr;
+        const m = colorStr.match(/rgba?\(([^)]+)\)/);
+        if (!m) return colorStr;
+        const parts = m[1].split(',').map(s => s.trim());
+        const r = Math.min(255, Math.round(parseFloat(parts[0]) * mul));
+        const g = Math.min(255, Math.round(parseFloat(parts[1]) * mul));
+        const b = Math.min(255, Math.round(parseFloat(parts[2]) * mul));
+        return parts.length > 3 ? `rgba(${r}, ${g}, ${b}, ${parts[3]})` : `rgb(${r}, ${g}, ${b})`;
+    }
+
+    // Matches a filter string that is ONLY a single brightness() call (no blur,
+    // hue-rotate, etc. combined in) — those still fall back to raster since
+    // they aren't a simple per-channel color multiply. Returns the factor, or
+    // null if the filter isn't (purely) brightness.
+    function parseBrightnessOnly(filter) {
+        if (!filter || filter === 'none') return null;
+        const m = filter.trim().match(/^brightness\(\s*([\d.]+)(%?)\s*\)$/);
+        if (!m) return null;
+        let v = parseFloat(m[1]);
+        if (m[2] === '%') v = v / 100;
+        return v;
+    }
+
+    function styleSnapshot(el, pseudo, brightnessMul = 1) {
         const cs = window.getComputedStyle(el, pseudo);
-        return {
+        const snap = {
             display: cs.display, visibility: cs.visibility, opacity: cs.opacity,
             position: cs.position, zIndex: cs.zIndex,
             backgroundColor: cs.backgroundColor, backgroundImage: cs.backgroundImage,
@@ -141,6 +169,17 @@ _EXTRACT_JS = r"""
             backgroundClip: cs.backgroundClip || cs.webkitBackgroundClip || '',
             content: pseudo ? cs.content : '',
         };
+        if (brightnessMul !== 1) {
+            snap.backgroundColor = applyBrightness(snap.backgroundColor, brightnessMul);
+            snap.borderTopColor = applyBrightness(snap.borderTopColor, brightnessMul);
+            snap.borderRightColor = applyBrightness(snap.borderRightColor, brightnessMul);
+            snap.borderBottomColor = applyBrightness(snap.borderBottomColor, brightnessMul);
+            snap.borderLeftColor = applyBrightness(snap.borderLeftColor, brightnessMul);
+            snap.color = applyBrightness(snap.color, brightnessMul);
+            if (snap.webkitTextFillColor) snap.webkitTextFillColor = applyBrightness(snap.webkitTextFillColor, brightnessMul);
+            if (snap.webkitTextStrokeColor) snap.webkitTextStrokeColor = applyBrightness(snap.webkitTextStrokeColor, brightnessMul);
+        }
+        return snap;
     }
 
     function rectOf(el) {
@@ -188,7 +227,7 @@ _EXTRACT_JS = r"""
     // Extract inline text runs from a text-bearing element.
     // Walks immediate descendants: text nodes inherit element style;
     // <span>/<strong>/<em>/<b>/<i> with text children become separate runs.
-    function extractRuns(el) {
+    function extractRuns(el, brightnessMul = 1) {
         const runs = [];
         function pushFromText(node, styleEl) {
             let txt = node.textContent;
@@ -205,15 +244,18 @@ _EXTRACT_JS = r"""
             if (tt === 'uppercase') txt = txt.toUpperCase();
             else if (tt === 'lowercase') txt = txt.toLowerCase();
             else if (tt === 'capitalize') txt = txt.replace(/\b\w/g, c => c.toUpperCase());
+            // extractRuns reads its own getComputedStyle (not styleSnapshot's),
+            // so an ancestor's brightness() filter must be baked in here too —
+            // see visit()'s effectiveBrightness / classify()'s brightness note.
             runs.push({
                 text: txt,
                 fontFamily: cs.fontFamily, fontSize: cs.fontSize,
                 fontWeight: cs.fontWeight, fontStyle: cs.fontStyle,
-                color: cs.color, letterSpacing: cs.letterSpacing,
+                color: applyBrightness(cs.color, brightnessMul), letterSpacing: cs.letterSpacing,
                 textDecorationLine: cs.textDecorationLine,
                 backgroundImage: cs.backgroundImage,
                 backgroundClip: cs.backgroundClip || cs.webkitBackgroundClip || '',
-                webkitTextFillColor: cs.webkitTextFillColor || '',
+                webkitTextFillColor: cs.webkitTextFillColor ? applyBrightness(cs.webkitTextFillColor, brightnessMul) : '',
             });
         }
         function walk(node, styleEl) {
@@ -315,9 +357,15 @@ _EXTRACT_JS = r"""
         if (cs.filter && cs.filter !== 'none') {
             // Leaf text whose ONLY filter is drop-shadow(s) (a glow/soft shadow)
             // stays NATIVE: Figma renders the glow as a DROP_SHADOW effect and the
-            // text remains editable (animatable in AE). Any richer filter (blur,
-            // brightness, …) or any non-leaf-text element still rasterizes.
-            const keepNative = filterIsOnlyDropShadow(cs.filter) && hasDirectText && !hasElemChildren;
+            // text remains editable (animatable in AE). A container-level (or
+            // leaf) filter that is ONLY brightness() also stays NATIVE: it's a
+            // linear R/G/B multiply, baked into each descendant's own color by
+            // styleSnapshot/extractRuns (see visit()'s brightnessMul threading)
+            // instead of rasterizing the whole subtree — keeps e.g. a dimmed
+            // card's icon/text/shape as separate editable Figma layers. Any
+            // richer/combined filter (blur, hue-rotate, …) still rasterizes.
+            const keepNative = (filterIsOnlyDropShadow(cs.filter) && hasDirectText && !hasElemChildren)
+                             || parseBrightnessOnly(cs.filter) !== null;
             if (!keepNative)                                 return 'raster';
         }
         if (cs.clipPath && cs.clipPath !== 'none')           return 'raster';
@@ -381,18 +429,43 @@ _EXTRACT_JS = r"""
     const out = [];
     let docOrder = 0;
 
-    function visit(el, parentUid, parentVisualUid) {
+    function visit(el, parentUid, parentVisualUid, brightnessMul = 1) {
         if (SKIP_TAGS.has(el.tagName)) return;
 
         const r = rectOf(el);
         const hasSize = r.w >= 1 && r.h >= 1;
-        const cs = styleSnapshot(el, null);
+        const cs = styleSnapshot(el, null, brightnessMul);
         if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return;
 
         const tag = el.tagName.toLowerCase();
         const isTextTag = TEXT_TAGS.has(el.tagName);
         const hasDirectText = Array.from(el.childNodes).some(n => n.nodeType === 3 && n.textContent.trim());
-        const hasElementChildren = Array.from(el.children).some(c => !SKIP_TAGS.has(c.tagName));
+        // <br> is a line-break marker folded into `runs` as {text:'\n'} (see
+        // extractRuns), never its own emitted element — it must NOT count as
+        // "has element children" here, or a plain `Foo<br>Bar` text leaf gets
+        // mis-forced into shape_type="frame" downstream, which disqualifies it
+        // from the true-text-bbox sizing done elsewhere for box+text leaves
+        // and leaves it sized to its own zero-margin DOM box width instead —
+        // fragile to the smallest Chrome/Figma font-metric difference and
+        // prone to mid-word wrap (scene_22 "HAPPENED" → "HAPPE"/"NED").
+        const hasElementChildren = Array.from(el.children).some(c => !SKIP_TAGS.has(c.tagName) && c.tagName !== 'BR');
+
+        // This element's OWN brightness() filter (if any) compounds on top of
+        // the inherited multiplier — it darkens/brightens both its own paint
+        // (background/border/text, applied below) AND everything it paints
+        // underneath it, so descendants recurse with the compounded value.
+        const ownBrightness = parseBrightnessOnly(cs.filter);
+        const effectiveBrightness = ownBrightness !== null ? brightnessMul * ownBrightness : brightnessMul;
+        if (ownBrightness !== null) {
+            cs.backgroundColor = applyBrightness(cs.backgroundColor, ownBrightness);
+            cs.borderTopColor = applyBrightness(cs.borderTopColor, ownBrightness);
+            cs.borderRightColor = applyBrightness(cs.borderRightColor, ownBrightness);
+            cs.borderBottomColor = applyBrightness(cs.borderBottomColor, ownBrightness);
+            cs.borderLeftColor = applyBrightness(cs.borderLeftColor, ownBrightness);
+            cs.color = applyBrightness(cs.color, ownBrightness);
+            if (cs.webkitTextFillColor) cs.webkitTextFillColor = applyBrightness(cs.webkitTextFillColor, ownBrightness);
+            if (cs.webkitTextStrokeColor) cs.webkitTextStrokeColor = applyBrightness(cs.webkitTextStrokeColor, ownBrightness);
+        }
 
         const myUid = uid();
         const myZ = effectiveZ(el, docOrder++);
@@ -428,6 +501,7 @@ _EXTRACT_JS = r"""
                     cssText: cs,
                     rasterTarget: true,   // builder will request screenshot
                     opacity: parseFloat(cs.opacity),
+                    isCanvas: el.hasAttribute('data-detected-canvas'),
                 });
                 // Don't recurse into raster element (children captured in PNG)
                 return;
@@ -436,13 +510,13 @@ _EXTRACT_JS = r"""
             // Native element: collect text + style
             let runs = null;
             if (hasDirectText) {
-                runs = extractRuns(el);
+                runs = extractRuns(el, effectiveBrightness);
             }
 
             // Pseudo-elements: emit synthetic raster siblings if they have content
             const pseudos = [];
             for (const ps of ['::before', '::after']) {
-                const psCS = styleSnapshot(el, ps);
+                const psCS = styleSnapshot(el, ps, effectiveBrightness);
                 const c = (psCS.content || '').trim();
                 if (c && c !== 'none' && c !== 'normal') {
                     pseudos.push({pseudo: ps, cs: psCS});
@@ -463,6 +537,7 @@ _EXTRACT_JS = r"""
                 opacity: parseFloat(cs.opacity),
                 isGradientContainer: isGradientContainer,
                 textRect: hasDirectText ? textBoxOffset(el, x, y) : null,
+                isCanvas: el.hasAttribute('data-detected-canvas'),
             };
             out.push(elem);
             // Gradient container's bg-only PNG is captured later in Python via
@@ -495,7 +570,7 @@ _EXTRACT_JS = r"""
         }
 
         for (const child of el.children) {
-            visit(child, parentUid, visualParent);
+            visit(child, parentUid, visualParent, effectiveBrightness);
         }
     }
 
@@ -550,7 +625,7 @@ _DETECT_DESIGN_JS = r"""
         }
     }
     let maxW = 0;
-    let canvas = null, canvasArea = 0;
+    let canvas = null, canvasArea = 0, canvasEl = null;
     for (const el of document.querySelectorAll('*')) {
         const cs = window.getComputedStyle(el);
         if (cs.maxWidth && cs.maxWidth.endsWith('px')) {
@@ -582,6 +657,7 @@ _DETECT_DESIGN_JS = r"""
             if (r.width > 0 && r.height > 0) {   // element actually rendered (not display:none)
                 canvas = {width: Math.round(aw), height: Math.round(ah)};
                 canvasArea = aw * ah;
+                canvasEl = el;
             }
         }
     }
@@ -597,12 +673,156 @@ _DETECT_DESIGN_JS = r"""
             const vw = window.innerWidth, vh = window.innerHeight;
             if (r.width >= vw * 0.95 && r.height >= vh * 0.9 && r.height <= vh * 1.1) {
                 canvas = {width: Math.round(vw), height: Math.round(vh)};
+                canvasEl = firstChild;
             }
         }
     }
+    // Tag the actual winning DOM element so the later extraction walk (which
+    // runs AFTER animations are frozen — a scale/translateZ camera animation on
+    // this very element would otherwise distort its measured size well past
+    // any authored-size tolerance) can identify it by IDENTITY, not by
+    // re-matching its rendered size at a different point in time.
+    if (canvasEl) canvasEl.setAttribute('data-detected-canvas', '');
     return {canvas, maxWidth: maxW || null};
 }
 """
+
+# Measures the tagged canvas element's viewport-relative position. Must be
+# called AFTER any probe-viewport resize (so it reflects the final layout) but
+# BEFORE animations are frozen — a scale/translateZ "camera" animation on the
+# canvas element itself (common: a fixed-size .scene-container with its own
+# push-in/zoom keyframe) renders at a different position/size once frozen at
+# its peak, so measuring post-freeze (or worse, post-raster-union-sync, which
+# can be wildly different again) badly misplaces the whole canvas origin.
+_MEASURE_CANVAS_JS = r"""
+() => {
+    const el = document.querySelector('[data-detected-canvas]');
+    if (!el) return null;
+    const body = document.body.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    // Frame-root-relative (matches _EXTRACT_JS's `x = r.x - frameRect.left`
+    // convention for every other element, since findFrameRoot() is always
+    // document.body) — comparable to raw_elements' x/y before the origin shift.
+    return {x: r.left - body.left, y: r.top - body.top};
+}
+"""
+
+
+# viewport_width=None → auto-detect the design width from the layout's own
+# max-width (split/wide layouts like a 1100px two-column scene render squished
+# at the old 600px default). An explicit value always overrides.
+PROBE_WIDTH = 1600
+DEFAULT_WIDTH = 600
+# Fully-fluid responsive pages expose no design width (no fixed canvas, no px
+# max-width). They are desktop-first: rendering at 600 collapses responsive
+# multi-column grids to their mobile (1-column) breakpoint. Render at a
+# desktop width so the intended desktop layout resolves.
+DESKTOP_WIDTH = 1280
+
+
+def decide_design_viewport(design: dict) -> dict:
+    """Pure decision: given _DETECT_DESIGN_JS's result, choose the probe
+    viewport width/height and whether this is a fixed-canvas design.
+
+    Shared with utils/render_html.py so both tools probe the page at the
+    identical viewport (a fluid page can lay out differently at different
+    widths, so the QC reference must match the width the extractor used).
+    Returns {"chosen_w", "chosen_h", "canvas_mode", "canvas_dims", "warning"}.
+    """
+    canvas = design.get("canvas")
+    maxw = design.get("maxWidth")
+    chosen_h = 900
+    canvas_mode = False
+    canvas_dims = None
+    if canvas:
+        # Fixed canvas → render at its exact size; frame = canvas (no margin).
+        chosen = int(min(canvas["width"], 1920))
+        chosen_h = int(min(canvas["height"], 1920))
+        canvas_mode = True
+        canvas_dims = (chosen, chosen_h)
+        warning = f"auto canvas {chosen}×{chosen_h}px (fixed design canvas)"
+    elif maxw and maxw > DEFAULT_WIDTH:
+        chosen = int(min(maxw, 1920))
+        warning = f"auto viewport width = {chosen}px (detected design max-width {int(maxw)}px)"
+    elif maxw is None:
+        # No width signal at all → fluid desktop-first page. Use desktop
+        # width so responsive grids don't collapse to the mobile breakpoint.
+        chosen = DESKTOP_WIDTH
+        warning = f"auto viewport width = {chosen}px (fluid responsive page, no max-width — desktop default)"
+    else:
+        # A px max-width was detected but it's ≤ 600 → genuinely small card
+        # design; keep the narrow default.
+        chosen = DEFAULT_WIDTH
+        warning = None
+    return {"chosen_w": chosen, "chosen_h": chosen_h, "canvas_mode": canvas_mode,
+            "canvas_dims": canvas_dims, "warning": warning}
+
+
+def compute_frame_size(raw_elements: list[dict], frame_w: int, frame_h: int,
+                        canvas_mode: bool, canvas_dims: tuple[int, int] | None,
+                        canvas_pos: tuple[float, float] | None = None) -> dict:
+    """Pure geometry decision — two modes:
+      • canvas_mode: a fixed design canvas was detected → frame = canvas size
+        EXACTLY (no margin). Origin = the canvas element's top-left.
+      • card-mode: frame = real content bbox + 100px margin on all sides.
+        Full-frame ambient overlays are excluded so they don't pin the frame
+        to the viewport size.
+
+    Shared with utils/render_html.py so the Figma frame and the QC reference
+    screenshot always measure the identical region of the page (previously
+    render_html.py cropped to the bare body bbox with no margin, while a
+    decorative element bleeding past the body's own edge — e.g. an ambient
+    glow positioned with `right:-10%` — could also widen this bbox, so the
+    two "ground truth" outputs silently disagreed on the frame's size).
+
+    Returns {"adj_w", "adj_h", "origin_x", "origin_y"}. Does not mutate
+    raw_elements — callers apply the origin shift themselves.
+    """
+    PAD = 100
+    if raw_elements and canvas_mode and canvas_dims:
+        cw, ch = canvas_dims
+        # Prefer `canvas_pos` — measured (by the caller, via _MEASURE_CANVAS_JS)
+        # right after the probe-viewport resize but BEFORE animations freeze.
+        # This is the only reliably stable anchor: the canvas element itself
+        # commonly carries its own scale/translateZ "camera" animation, so ANY
+        # measurement taken after freezing (or worse, after the raster loop's
+        # union-with-descendants geometry sync) reflects that animation's peak
+        # transform or a wildly-scattered union bbox — NOT the canvas's true
+        # resting position (confirmed on real scenes with such a camera-push
+        # container: both later measurements misplaced the whole canvas).
+        if canvas_pos is not None:
+            origin_x, origin_y = canvas_pos
+        else:
+            # Fallback (canvas_pos unavailable — e.g. an older caller): locate
+            # the canvas element by identity tag, then by authored-size match.
+            # Both are less reliable than canvas_pos for the reason above.
+            cands = [r for r in raw_elements if r.get("isCanvas")]
+            if not cands:
+                cands = [r for r in raw_elements
+                          if abs(r.get("_orig_w", r["w"]) - cw) <= 3 and abs(r.get("_orig_h", r["h"]) - ch) <= 3]
+            if cands:
+                origin_x, origin_y = cands[0]["x"], cands[0]["y"]
+            else:
+                origin_x, origin_y = min(r["x"] for r in raw_elements), min(r["y"] for r in raw_elements)
+        return {"adj_w": cw, "adj_h": ch, "origin_x": origin_x, "origin_y": origin_y}
+    elif raw_elements:
+        def _is_full_frame_bg(r):
+            return r["w"] >= frame_w * 0.95 and r["h"] >= frame_h * 0.95
+        content = [r for r in raw_elements if not _is_full_frame_bg(r)]
+        if not content:                      # all elements are full-frame → use them
+            content = raw_elements
+        min_x = min(r["x"] for r in content)
+        min_y = min(r["y"] for r in content)
+        max_x = max(r["x"] + r["w"] for r in content)
+        max_y = max(r["y"] + r["h"] for r in content)
+        # Shift everything so content starts at (PAD, PAD). Full-frame overlays
+        # move with it (they sit behind, clipped by the frame on export).
+        origin_x = min_x - PAD
+        origin_y = min_y - PAD
+        return {"adj_w": (max_x - min_x) + 2 * PAD, "adj_h": (max_y - min_y) + 2 * PAD,
+                "origin_x": origin_x, "origin_y": origin_y}
+    else:
+        return {"adj_w": frame_w, "adj_h": frame_h, "origin_x": 0, "origin_y": 0}
 
 
 _FREEZE_ANIMATIONS_JS = r"""
@@ -1205,6 +1425,18 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
             text_elem["y"] = round(base["y"] + tr["dy"])
             text_elem["width"] = tr["w"]
             text_elem["height"] = tr["h"]
+        # Chrome's and Figma's text-shaping engines measure the same
+        # font/size/letter-spacing a few px apart. That's invisible when a box
+        # has real slack, but when the emitted width is a TIGHT fit to the
+        # glyphs' own measured width (shrink-to-fit auto-width text, or the
+        # true-bbox override just above) there's zero margin to absorb the
+        # difference — Figma can wrap, even mid-word, text that renders on one
+        # line in the browser (scene_22 "HAPPENED" → "HAPPE"/"NED", confirmed
+        # by resizing the built node: +5px was enough to stop the wrap).
+        # Nudge the width out by a small cushion ONLY at that zero-slack
+        # boundary — an author-sized box with real wrap slack is untouched.
+        if tr and abs(text_elem["width"] - tr["w"]) <= 2:
+            text_elem["width"] += 6
         elements_out.append(text_elem)
 
 
@@ -1265,13 +1497,6 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
     # max-width (split/wide layouts like a 1100px two-column scene render
     # squished at the old 600px default). An explicit value always overrides.
     auto_width = viewport_width is None
-    PROBE_WIDTH = 1600
-    DEFAULT_WIDTH = 600
-    # Fully-fluid responsive pages expose no design width (no fixed canvas, no px
-    # max-width). They are desktop-first: rendering at 600 collapses responsive
-    # multi-column grids to their mobile (1-column) breakpoint. Render at a
-    # desktop width so the intended desktop layout resolves.
-    DESKTOP_WIDTH = 1280
     init_width = PROBE_WIDTH if auto_width else viewport_width
     # canvas_mode: a fixed-size design canvas (width+height) was detected → frame
     # matches the canvas exactly. Otherwise card-mode (fit content + PAD margin).
@@ -1293,32 +1518,22 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
         if auto_width:
             # Detect a fixed design canvas first; else the largest px max-width.
             design = page.evaluate(_DETECT_DESIGN_JS)
-            canvas = design.get("canvas")
-            maxw = design.get("maxWidth")
-            chosen_h = 900
-            if canvas:
-                # Fixed canvas → render at its exact size; frame = canvas (no margin).
-                chosen = int(min(canvas["width"], 1920))
-                chosen_h = int(min(canvas["height"], 1920))
-                canvas_mode = True
-                canvas_dims = (chosen, chosen_h)
-                warnings.append(f"auto canvas {chosen}×{chosen_h}px (fixed design canvas)")
-            elif maxw and maxw > DEFAULT_WIDTH:
-                chosen = int(min(maxw, 1920))
-                warnings.append(f"auto viewport width = {chosen}px (detected design max-width {int(maxw)}px)")
-            elif maxw is None:
-                # No width signal at all → fluid desktop-first page. Use desktop
-                # width so responsive grids don't collapse to the mobile breakpoint.
-                chosen = DESKTOP_WIDTH
-                warnings.append(f"auto viewport width = {chosen}px (fluid responsive page, no max-width — desktop default)")
-            else:
-                # A px max-width was detected but it's ≤ 600 → genuinely small card
-                # design; keep the narrow default.
-                chosen = DEFAULT_WIDTH
+            decision = decide_design_viewport(design)
+            chosen, chosen_h = decision["chosen_w"], decision["chosen_h"]
+            canvas_mode, canvas_dims = decision["canvas_mode"], decision["canvas_dims"]
+            if decision["warning"]:
+                warnings.append(decision["warning"])
             if chosen != init_width or chosen_h != 900:
                 page.set_viewport_size({"width": chosen, "height": chosen_h})
                 page.wait_for_timeout(400)  # let layout reflow
             viewport_width = chosen
+
+        # Measure the tagged canvas element's position NOW — after the probe
+        # viewport is final, but before _FREEZE_ANIMATIONS_JS can distort it via
+        # a scale/translateZ "camera" animation on the canvas element itself.
+        # None when canvas_mode is False (no element was tagged).
+        canvas_pos = page.evaluate(_MEASURE_CANVAS_JS)
+        canvas_pos = (canvas_pos["x"], canvas_pos["y"]) if canvas_pos else None
 
         # Step 1 (JS): Jump every animation to its OWN peak-opacity moment (or
         # natural end state if it has no opacity keyframe). See _FREEZE_ANIMATIONS_JS.
@@ -1343,6 +1558,14 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
         body_bg = _color_to_rgba(result.get("bodyBg", ""))
         root_bg = _color_to_rgba(result.get("rootBg", ""))
 
+        # Stash each element's ORIGINAL (DOM-walk, pre-raster-union) w/h before
+        # the raster loop below can overwrite raw["w"]/raw["h"] with a bigger,
+        # union-with-descendants size. compute_frame_size's canvas-mode origin
+        # detection needs to match against the AUTHORED canvas size, which only
+        # the original measurement reflects — see the comment at that call site.
+        for _r in raw_elements:
+            _r["_orig_w"], _r["_orig_h"] = _r["w"], _r["h"]
+
         # Sample rendered bg pixel early (before page is modified by raster loop).
         # Used as frame_bg fallback when body/root background is transparent.
         _sampled_bg = None
@@ -1359,49 +1582,19 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
         # Assign stable string ids
         uid_to_id = {r["uid"]: r["uid"] for r in raw_elements}
 
-        # Frame sizing — two modes:
-        #  • canvas_mode: a fixed design canvas was detected → frame = canvas size
-        #    EXACTLY (no margin). Origin = the canvas element's top-left.
-        #  • card-mode: frame = real content bbox + PAD margin on all sides.
-        #    Full-frame ambient overlays are excluded so they don't pin the frame
-        #    to the viewport size.
-        PAD = 100
-        if raw_elements and canvas_mode and canvas_dims:
-            cw, ch = canvas_dims
-            # Locate the canvas element by size match; fall back to (0,0) origin.
-            cands = [r for r in raw_elements if abs(r["w"] - cw) <= 3 and abs(r["h"] - ch) <= 3]
-            if cands:
-                origin_x, origin_y = cands[0]["x"], cands[0]["y"]
-            else:
-                origin_x, origin_y = min(r["x"] for r in raw_elements), min(r["y"] for r in raw_elements)
-            for r in raw_elements:
-                r["x"] -= origin_x
-                r["y"] -= origin_y
-            adj_w, adj_h = cw, ch
-        elif raw_elements:
-            def _is_full_frame_bg(r):
-                return r["w"] >= frame_w * 0.95 and r["h"] >= frame_h * 0.95
-            content = [r for r in raw_elements if not _is_full_frame_bg(r)]
-            if not content:                      # all elements are full-frame → use them
-                content = raw_elements
-            min_x = min(r["x"] for r in content)
-            min_y = min(r["y"] for r in content)
-            max_x = max(r["x"] + r["w"] for r in content)
-            max_y = max(r["y"] + r["h"] for r in content)
-            # Shift everything so content starts at (PAD, PAD). Full-frame overlays
-            # move with it (they sit behind, clipped by the frame on export).
-            origin_x = min_x - PAD
-            origin_y = min_y - PAD
-            for r in raw_elements:
-                r["x"] -= origin_x
-                r["y"] -= origin_y
-            adj_w = (max_x - min_x) + 2 * PAD
-            adj_h = (max_y - min_y) + 2 * PAD
-        else:
-            adj_w, adj_h = frame_w, frame_h
-
         # Sort by effective z (stable doc order built in)
         raw_elements.sort(key=lambda r: r["z"])
+
+        # Frame sizing (canvas-exact vs content-bbox+margin) is computed AFTER
+        # the raster capture loop below, not here — a raster element's bbox can
+        # grow significantly once _isolated_screenshot unions it with escaping
+        # descendants (see that loop's geometry sync), and frame sizing must
+        # account for the corrected (larger) size, not this pre-union DOM-walk
+        # measurement, or content legitimately ends up outside the frame's own
+        # bounds (confirmed on real scenes: a 3D-transform/scale animation's
+        # peak state can push a raster element hundreds of px past a frame
+        # sized from stale geometry). See the frame-sizing call further below,
+        # right before browser.close().
 
         # ─── Layer-isolation + bleed-aware screenshot ───────────────────────────
         # Two combined fixes:
@@ -1693,8 +1886,13 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
                 # Sync geometry to the rect ACTUALLY captured — may be larger than
                 # the DOM-walk's target-only rect when a descendant (e.g. a
                 # position:absolute pin icon) escapes the target's own layout box.
-                raw["x"] = (result["rect"]["x"] - _frame_rect["left"]) - origin_x
-                raw["y"] = (result["rect"]["y"] - _frame_rect["top"]) - origin_y
+                # NOTE: no origin_x/origin_y subtraction here — frame sizing (and
+                # the origin shift applied to every element) now runs AFTER this
+                # loop, once each raster element's true post-union size is known.
+                # This leaves x/y in the same frame-root-relative (not yet
+                # origin-shifted) space every native element is already in.
+                raw["x"] = result["rect"]["x"] - _frame_rect["left"]
+                raw["y"] = result["rect"]["y"] - _frame_rect["top"]
                 raw["w"] = result["rect"]["w"]
                 raw["h"] = result["rect"]["h"]
                 raw["_asset_filename"] = png_path.name
@@ -1736,6 +1934,20 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
                     el.innerHTML = window.__savedHTML[uid];
                     delete window.__savedHTML[uid];
                 }""", uid_str)
+
+        # Frame sizing (canvas-exact vs content-bbox+margin) — shared with
+        # utils/render_html.py's QC reference via compute_frame_size(). Runs
+        # HERE (after the raster loop above) so it sees each raster element's
+        # true, union-corrected size/position rather than the pre-capture
+        # DOM-walk measurement — see the comment left at this function's
+        # original call site (right after the z-sort) for why.
+        geom = compute_frame_size(raw_elements, frame_w, frame_h, canvas_mode, canvas_dims, canvas_pos)
+        adj_w, adj_h = geom["adj_w"], geom["adj_h"]
+        origin_x, origin_y = geom["origin_x"], geom["origin_y"]
+        if raw_elements:
+            for r in raw_elements:
+                r["x"] -= origin_x
+                r["y"] -= origin_y
 
         browser.close()
 
