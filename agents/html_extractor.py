@@ -428,6 +428,7 @@ _EXTRACT_JS = r"""
 
     const out = [];
     const skipWarnings = [];
+    const noiseReview = [];
     let docOrder = 0;
 
     // ─── Decorative-noise swarm detection ──────────────────────────────────
@@ -443,58 +444,112 @@ _EXTRACT_JS = r"""
         return NOISE_WORDS.some(w => cls.includes(w));
     }
 
-    // A leaf (no real element children), holding no text, ≤12px in both dims.
-    function isTinyTextlessLeaf(el) {
-        for (const c of el.children) {
-            if (!SKIP_TAGS.has(c.tagName) && c.tagName !== 'BR') return false;
-        }
-        for (const n of el.childNodes) {
-            if (n.nodeType === 3 && n.textContent.trim()) return false;
-        }
-        const r = el.getBoundingClientRect();
-        if (r.width < 1 || r.height < 1) return false;
-        return Math.max(r.width, r.height) <= 12;
-    }
+    const SWARM_FLOOR = 8;      // min group size to be swarm-shaped
+    const DROP_MAX_PX = 12;     // a droppable particle is this small or smaller
+    const REVIEW_MAX_PX = 24;   // review net is wider — catches "hạt hơi to hơn"
 
-    // Returns {set, count, keyword} if `parent`'s direct children hold a
-    // droppable swarm, else null. A swarm = the largest group of near-equal-size
-    // (delta ≤2px) tiny-textless-leaf children, dropped when count≥12, or count≥8
-    // with a keyword match on the parent or a group member.
-    function decorativeSwarmChildren(parent) {
+    // `parent`'s direct children that are leaves (no real element children),
+    // hold no text, and whose max dimension is ≤ maxPx. Returns [{el, r}].
+    function smallTextlessLeaves(parent, maxPx) {
         const cands = [];
         for (const c of parent.children) {
             if (SKIP_TAGS.has(c.tagName) || c.tagName === 'BR') continue;
-            if (isTinyTextlessLeaf(c)) cands.push(c);
+            let isLeaf = true;
+            for (const cc of c.children) {
+                if (!SKIP_TAGS.has(cc.tagName) && cc.tagName !== 'BR') { isLeaf = false; break; }
+            }
+            if (!isLeaf) continue;
+            let hasText = false;
+            for (const n of c.childNodes) {
+                if (n.nodeType === 3 && n.textContent.trim()) { hasText = true; break; }
+            }
+            if (hasText) continue;
+            const r = c.getBoundingClientRect();
+            if (r.width < 1 || r.height < 1) continue;
+            if (Math.max(r.width, r.height) <= maxPx) cands.push({ el: c, r });
         }
-        if (cands.length < 8) return null;
-        let best = [];
-        for (const seed of cands) {
-            const sr = seed.getBoundingClientRect();
-            const grp = cands.filter(c => {
-                const r = c.getBoundingClientRect();
-                return Math.abs(r.width - sr.width) <= 2 && Math.abs(r.height - sr.height) <= 2;
-            });
-            if (grp.length > best.length) best = grp;
-        }
-        if (best.length < 8) return null;
-        const keyword = noiseMatch(parent) || best.some(noiseMatch);
-        const drop = best.length >= 12 || (best.length >= 8 && keyword);
-        if (!drop) return null;
-        return { set: new Set(best), count: best.length, keyword };
+        return cands;
     }
 
-    // Emit the skip warning for a detected swarm under `el` (el may be the frame
-    // root or any element). No-op if swarm is null.
-    function noteSwarm(el, swarm) {
-        if (!swarm) return;
-        const label = el.getAttribute('class')
+    // Largest sub-group of near-equal-size (delta ≤2px) candidates. Returns [{el,r}].
+    function largestSameSizeGroup(cands) {
+        let best = [];
+        for (const seed of cands) {
+            const grp = cands.filter(c =>
+                Math.abs(c.r.width - seed.r.width) <= 2 && Math.abs(c.r.height - seed.r.height) <= 2);
+            if (grp.length > best.length) best = grp;
+        }
+        return best;
+    }
+
+    // Classify `parent`'s children as a decorative swarm:
+    //   {decision:'drop', set, count, keyword}  — remove it (piles of dead layers)
+    //   {decision:'review', count, els}         — swarm-SHAPED but NOT confident
+    //       enough to drop (no keyword & N<12, or only forms in the wider size
+    //       band) → keep it, but log for human review so new particle types /
+    //       keywords can be added later after seeing real HTML.
+    //   null                                    — not swarm-shaped
+    function classifySwarm(parent) {
+        const dropCands = smallTextlessLeaves(parent, DROP_MAX_PX);
+        if (dropCands.length >= SWARM_FLOOR) {
+            const best = largestSameSizeGroup(dropCands);
+            if (best.length >= SWARM_FLOOR) {
+                const els = best.map(c => c.el);
+                const keyword = noiseMatch(parent) || els.some(noiseMatch);
+                if (best.length >= 12 || keyword) {
+                    return { decision: 'drop', set: new Set(els), count: best.length, keyword };
+                }
+            }
+        }
+        // Not dropped — is it still swarm-shaped under the wider review net?
+        const revCands = smallTextlessLeaves(parent, REVIEW_MAX_PX);
+        if (revCands.length >= SWARM_FLOOR) {
+            const best = largestSameSizeGroup(revCands);
+            if (best.length >= SWARM_FLOOR) {
+                return { decision: 'review', count: best.length, els: best.map(c => c.el) };
+            }
+        }
+        return null;
+    }
+
+    function labelOf(el) {
+        return el.getAttribute('class')
             ? '.' + el.getAttribute('class').split(/\s+/)[0]
             : '<' + el.tagName.toLowerCase() + '>';
-        const how = swarm.keyword
-            ? 'structural+keyword'
-            : 'structural-only, N=' + swarm.count;
+    }
+
+    // Log a DROPPED swarm to warnings.
+    function noteSwarm(el, swarm) {
+        const how = swarm.keyword ? 'structural+keyword' : 'structural-only, N=' + swarm.count;
         skipWarnings.push('skipped decorative swarm: ' + swarm.count
-            + ' leaves under ' + label + ' (match: ' + how + ')');
+            + ' leaves under ' + labelOf(el) + ' (match: ' + how + ')');
+    }
+
+    // Log a KEPT-but-suspect swarm to the review diagnostic, capturing the group's
+    // distinct class tokens (candidate new keywords) and size range.
+    function noteReview(el, swarm) {
+        const tokens = new Set();
+        let minS = Infinity, maxS = 0;
+        for (const c of swarm.els) {
+            for (const t of (c.getAttribute('class') || '').split(/\s+/)) if (t) tokens.add(t.toLowerCase());
+            const r = c.getBoundingClientRect();
+            const s = Math.max(r.width, r.height);
+            if (s < minS) minS = s;
+            if (s > maxS) maxS = s;
+        }
+        noiseReview.push('potential swarm kept for review: ' + swarm.count
+            + ' leaves under ' + labelOf(el)
+            + ' (classes: ' + Array.from(tokens).join(', ')
+            + '; sizes ' + Math.round(minS) + '–' + Math.round(maxS) + 'px'
+            + '; kept: no keyword & N<12)');
+    }
+
+    // Route a classified swarm to the right log. Returns the drop-set (or null).
+    function handleSwarm(el, swarm) {
+        if (!swarm) return null;
+        if (swarm.decision === 'drop') { noteSwarm(el, swarm); return swarm.set; }
+        noteReview(el, swarm);
+        return null;
     }
     // ───────────────────────────────────────────────────────────────────────
 
@@ -638,10 +693,9 @@ _EXTRACT_JS = r"""
             if (!anyBlock) return;
         }
 
-        const swarm = decorativeSwarmChildren(el);
-        noteSwarm(el, swarm);
+        const dropSet = handleSwarm(el, classifySwarm(el));
         for (const child of el.children) {
-            if (swarm && swarm.set.has(child)) continue;
+            if (dropSet && dropSet.has(child)) continue;
             visit(child, parentUid, visualParent, effectiveBrightness);
         }
     }
@@ -650,10 +704,9 @@ _EXTRACT_JS = r"""
     // offscreen bg-clones, and body.children is a live HTMLCollection that would
     // otherwise pick them up mid-iteration and skew normalization.
     const topLevel = Array.from(frameRoot.children);
-    const rootSwarm = decorativeSwarmChildren(frameRoot);
-    noteSwarm(frameRoot, rootSwarm);
+    const rootDropSet = handleSwarm(frameRoot, classifySwarm(frameRoot));
     for (const child of topLevel) {
-        if (rootSwarm && rootSwarm.set.has(child)) continue;
+        if (rootDropSet && rootDropSet.has(child)) continue;
         visit(child, null, null);
     }
     // Also include frameRoot's own background if it has one
@@ -662,6 +715,7 @@ _EXTRACT_JS = r"""
     return {
         elements: out,
         warnings: skipWarnings,
+        noiseReview: noiseReview,
         frameWidth: Math.round(frameRect.width),
         frameHeight: Math.round(frameRect.height),
         bodyBg: bodyCS.backgroundColor,
@@ -1630,6 +1684,7 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
         result = page.evaluate(_EXTRACT_JS)
         raw_elements = result["elements"]
         warnings.extend(result.get("warnings", []))
+        noise_review = result.get("noiseReview", [])
         frame_w = result["frameWidth"]
         frame_h = result["frameHeight"]
         body_bg = _color_to_rgba(result.get("bodyBg", ""))
@@ -2144,6 +2199,7 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
         "frame_bg": frame_bg,
         "assets_dir": assets_dir,
         "warnings": warnings,
+        "noise_review": noise_review,
         "elements": elements_spec,
     }
     return spec
@@ -2166,5 +2222,7 @@ if __name__ == "__main__":
     out_path.write_text(json.dumps(spec, indent=2, ensure_ascii=False), encoding="utf-8")
     n_native = sum(1 for e in spec["elements"] if e["type"] != "image")
     n_raster = sum(1 for e in spec["elements"] if e["type"] == "image")
-    print(f"Saved → {out_path}  ({n_native} native + {n_raster} raster, {len(spec['warnings'])} warnings)",
+    n_review = len(spec.get("noise_review", []))
+    print(f"Saved → {out_path}  ({n_native} native + {n_raster} raster, "
+          f"{len(spec['warnings'])} warnings, {n_review} to-review)",
           file=sys.stderr)

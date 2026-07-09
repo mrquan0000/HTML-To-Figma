@@ -132,3 +132,48 @@ def test_keyword_named_text_element_kept(tmp_path):
     kept = "".join(r["text"] for e in spec["elements"] if e["type"] == "text"
                    for r in e.get("runs", []))
     assert "DUST STORM" in kept, ".dust-label has text → must survive despite 'dust' name"
+
+
+# ── noise_review: a diagnostic log of swarm-SHAPED groups we did NOT drop, so
+#    unknown particle types / missing keywords can be discovered on real HTML. ──
+
+# 9 tiny textless .orb leaves — not a known keyword, N<12 → KEPT, but flagged.
+_ORBS = "\n".join(f'<div class="orb" style="top:{i*5}%;left:{i*7}%"></div>' for i in range(9))
+ORB_HTML = f"""<!doctype html><html><head><style>
+  body {{ margin:0; width:800px; height:400px; background:#111; position:relative; }}
+  .orb {{ position:absolute; width:5px; height:5px; border-radius:50%; background:#fff; }}
+</style></head><body>{_ORBS}</body></html>"""
+
+
+def test_review_flags_keywordless_swarm(tmp_path):
+    spec = run_extract(ORB_HTML, tmp_path)
+    rev = " ".join(spec.get("noise_review", []))
+    assert "orb" in rev, f"review log should surface the 'orb' class; got {spec.get('noise_review')}"
+    # It was flagged, NOT dropped.
+    assert not any("skipped decorative swarm" in w for w in spec["warnings"])
+
+
+# 10 textless 20px .blob leaves — too big for the ≤12px DROP net, but within the
+# ≤24px REVIEW net → flagged so the size threshold can be revisited.
+_BLOBS = "\n".join(f'<div class="blob" style="top:{i*6}%;left:{i*6}%"></div>' for i in range(10))
+BLOB_HTML = f"""<!doctype html><html><head><style>
+  body {{ margin:0; width:800px; height:600px; background:#111; position:relative; }}
+  .blob {{ position:absolute; width:20px; height:20px; border-radius:50%; background:#0af; }}
+</style></head><body>{_BLOBS}</body></html>"""
+
+
+def test_review_flags_oversized_repeated_leaves(tmp_path):
+    spec = run_extract(BLOB_HTML, tmp_path)
+    rev = " ".join(spec.get("noise_review", []))
+    assert "blob" in rev, f"20px repeated leaves should be flagged; got {spec.get('noise_review')}"
+    # 20px leaves are NOT dropped — they remain as real elements.
+    assert len(spec["elements"]) >= 10
+
+
+def test_dropped_swarm_not_in_review(tmp_path):
+    # FOURTEEN_HTML's 14 keywordless leaves are DROPPED (N≥12) — a dropped swarm
+    # must NOT also be listed for review.
+    spec = run_extract(FOURTEEN_HTML, tmp_path)
+    assert spec.get("noise_review", []) == [], \
+        f"a dropped swarm must not appear in review; got {spec.get('noise_review')}"
+    assert any("skipped decorative swarm" in w for w in spec["warnings"])
