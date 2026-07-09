@@ -360,11 +360,19 @@ _EXTRACT_JS = r"""
         return stripped === '';
     }
 
-    // True when `backgroundImage` is EXACTLY one linear-gradient(...) or
-    // radial-gradient(...) call (no stacked layers, no conic/repeating) —
-    // mirrors the Python-side `_parse_gradient()` regex exactly so
-    // classify()'s native/raster decision never disagrees with what the
-    // color-blend step can actually parse.
+    // True when `backgroundImage` STARTS with linear-gradient(/radial-gradient(
+    // and has no conic/repeating prefix — mirrors the Python-side
+    // `_parse_gradient()` regex so classify()'s decision never disagrees with
+    // what the color-blend step can actually parse. NOTE: a genuinely stacked
+    // multi-layer background (e.g. `linear-gradient(a,b), linear-gradient(c,d)`)
+    // can still match here — the greedy regex doesn't reject a trailing
+    // comma-separated layer, same pre-existing fragility as _parse_gradient()
+    // below, which this deliberately mirrors. Not fixed: no scene in
+    // input/*.html hits this, and approximating a stacked gradient to one
+    // solid color is still a safe (if slightly-off) direction given
+    // editability is the priority — it never regresses toward MORE raster,
+    // just toward a possibly-mis-picked native color. Revisit if a real
+    // multi-layer-gradient scene surfaces.
     function isSimpleGradientBg(backgroundImage) {
         return /^(linear|radial)-gradient\(.+\)$/s.test((backgroundImage || '').trim());
     }
