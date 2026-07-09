@@ -152,6 +152,7 @@ _EXTRACT_JS = r"""
             borderBottomLeftRadius: cs.borderBottomLeftRadius,
             // Effects
             boxShadow: cs.boxShadow,
+            textShadow: cs.textShadow,
             filter: cs.filter,
             backdropFilter: cs.backdropFilter || cs.webkitBackdropFilter || '',
             clipPath: cs.clipPath,
@@ -1746,6 +1747,14 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
         text_filter_blur_radius = _parse_filter_blur(text_filter_str)
         if text_filter_blur_radius is not None:
             text_effects.append({"type": "LAYER_BLUR", "radius": text_filter_blur_radius})
+        # CSS text-shadow (glyph-shaped shadow, distinct from box-shadow/filter)
+        # uses the same "offx offy blur color" token shape as box-shadow, so
+        # _parse_shadows() (already used for box-shadow) parses it directly —
+        # each layer becomes its own stacked Figma DROP_SHADOW effect on the
+        # text node (set_effects accepts an array). Unlike filter above,
+        # text-shadow only ever affects glyphs (never a box), so no
+        # hasElementChildren guard is needed — always safe to apply here.
+        text_effects.extend(_parse_shadows(cs.get("textShadow", "")))
         # -webkit-text-stroke (glyph rim/outline) → Figma text-node stroke, so the
         # text stays editable with its outline (e.g. scene_18 glowing "?"). Figma
         # text strokes paint centered on the glyph path like CSS text-stroke.
@@ -2383,6 +2392,13 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
     # unchanged; only the clipping parent changes. This can only REVEAL overflow
     # the browser already shows, never hide anything.
     spec_by_id = {e["id"]: e for e in elements_spec}
+    # Snapshot each element's ORIGINAL siblings' z (same parent_id, before this
+    # loop's own reparenting mutates anything) — used below to decide escape
+    # DIRECTION per element, unaffected by earlier iterations in this same loop
+    # already promoting one of those siblings away.
+    original_siblings_z: dict[str | None, list[tuple[str, float]]] = {}
+    for e in elements_spec:
+        original_siblings_z.setdefault(e.get("parent_id"), []).append((e["id"], e.get("z", 0)))
     def _box(e):
         return (e["x"], e["y"], e["x"] + e["width"], e["y"] + e["height"])
     def _contains(p, c, tol=2):
@@ -2395,14 +2411,28 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
             continue
         if parent.get("clip_content") or _contains(parent, e):
             continue
-        # The child painted on top of (after) its original parent's own fill in
-        # the nested DOM/Figma tree. Once promoted to a sibling of that parent,
-        # Pass 4 sorts siblings by z — preserve "renders above its old container"
-        # by bumping z past the original parent's, or the frame's own fill would
-        # cover the now-sibling child (scene_23 .step-card swallowing its
-        # overflowing "UNDERSTAND" label).
+        # The escaping child's ORIGINAL z already reflects its intended
+        # relationship (via the CSS stacking context it came from) to the
+        # OTHER children still nested inside this frame. Figma composites a
+        # frame as one all-or-nothing unit in the outer stack — an escaped
+        # child can only render fully above or fully below the WHOLE frame,
+        # never interleaved with individual children still inside it. If a
+        # sibling with a HIGHER original z remains inside (meaning the escaping
+        # child was meant to render BELOW it — e.g. scene_9's pin-bg icon,
+        # z-index:0, escaping a frame that also holds the z-index:5 numeral),
+        # bumping it above the whole frame would incorrectly cover that
+        # sibling too. Escape BELOW the frame in that case instead. Escape
+        # ABOVE (the original, still-correct behavior) when nothing inside
+        # outranks it — preserves the original scene_23 fix (".step-card
+        # swallowing its own overflowing label", where the label WAS the
+        # topmost content already).
         original_parent_z = parent.get("z", 0)
-        e["z"] = max(e.get("z", 0), original_parent_z) + 0.5
+        siblings_z = [z for sid, z in original_siblings_z.get(e.get("parent_id"), []) if sid != e["id"]]
+        outranked_by_sibling = bool(siblings_z) and e.get("z", 0) < max(siblings_z)
+        if outranked_by_sibling:
+            e["z"] = original_parent_z - 0.5
+        else:
+            e["z"] = max(e.get("z", 0), original_parent_z) + 0.5
         cur = parent
         while True:
             gp = spec_by_id.get(cur.get("parent_id"))

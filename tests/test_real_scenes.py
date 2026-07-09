@@ -74,3 +74,32 @@ def test_real_scene_gradient_text_becomes_native(tmp_path):
     texts = [e for e in spec["elements"] if e["type"] == "text"]
     assert texts, "scene_9's gradient-clip heading should now be a native text element"
     assert any("approximated gradient text fill" in w for w in spec["warnings"])
+
+
+def test_numeral_extrusion_gets_stacked_text_shadow_effects(tmp_path):
+    # scene_9's .number-extrusion span has a 15-layer text-shadow creating the
+    # numeral's "3D bevel" look — must survive as 15 stacked native DROP_SHADOW
+    # effects on the text node instead of rendering flat.
+    spec = _spec_for("scene_9", tmp_path)
+    extrusion = next(e for e in spec["elements"]
+                      if "number-extrusion" in e.get("name", "").lower())
+    drop_shadows = [fx for fx in extrusion.get("effects", []) if fx["type"] == "DROP_SHADOW"]
+    assert len(drop_shadows) == 15, \
+        f"expected 15 stacked DROP_SHADOW layers, got {len(drop_shadows)}"
+
+
+def test_pin_icon_no_longer_covers_numeral_in_scene_9(tmp_path):
+    # scene_9's "Ghostly Location Pin" SVG icon (.pin-bg, CSS z-index:0)
+    # overflows its focal-wrapper frame and must escape Pass 3.5's clipping
+    # workaround — but the SAME frame also holds the "1" numeral text
+    # (.number-container, CSS z-index:5), which must stay visually on TOP of
+    # the pin per the source CSS. Since a frame composites as one
+    # all-or-nothing unit in the outer stack, the escaped pin icon must land
+    # BELOW the whole frame (not above it, which would incorrectly cover the
+    # numeral nested inside).
+    spec = _spec_for("scene_9", tmp_path)
+    pin = next(e for e in spec["elements"] if e.get("name", "").lower().startswith("[svg"))
+    wrapper = next(e for e in spec["elements"] if "focal-wrapper" in e.get("name", "").lower())
+    assert pin["z"] < wrapper["z"], \
+        f"pin icon (z={pin['z']}) must render BELOW focal-wrapper (z={wrapper['z']}), " \
+        "not above the frame holding the numeral that should stay on top of it"
