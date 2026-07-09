@@ -201,3 +201,51 @@ def test_config_keyword_promotes_swarm_to_drop(tmp_path, monkeypatch):
     assert any("skipped decorative swarm" in w for w in after["warnings"]), \
         "with 'orb' configured, the swarm must now drop"
     assert "orb" not in _review_classes(after), "a dropped swarm leaves the review log"
+
+
+# ── Leftover-straggler sweep: a swarm split across two size clusters (both
+#    keyword-matched) must drop ENTIRELY, not just its largest same-size
+#    bucket (scene_12's .neuron-particle: 14 leaves at 4px + 3 more at 9px —
+#    outside the ±2px tolerance of the 4px cluster — used to survive). ──
+_MAIN_CLUSTER = "\n".join(
+    f'<div class="particle" style="top:{i*5}%;left:{(i*6)%100}%; width:4px; height:4px;"></div>'
+    for i in range(14)
+)
+_STRAGGLERS = "\n".join(
+    f'<div class="particle" style="top:{i*8}%;left:{(i*9)%100}%; width:9px; height:9px;"></div>'
+    for i in range(3)
+)
+TWO_CLUSTER_HTML = f"""<!doctype html><html><head><style>
+  body {{ margin:0; width:800px; height:600px; background:#111; position:relative; }}
+</style></head><body>
+  <div class="particles">{_MAIN_CLUSTER}{_STRAGGLERS}</div>
+</body></html>"""
+
+
+def test_leftover_stragglers_swept_into_same_drop(tmp_path):
+    spec = run_extract(TWO_CLUSTER_HTML, tmp_path)
+    tiny = [e for e in spec["elements"] if e["width"] <= 12 and e["height"] <= 12]
+    assert tiny == [], f"all 17 particles (both size clusters) must be dropped, got {tiny}"
+    assert any("skipped decorative swarm: 17 leaves" in w for w in spec["warnings"]), \
+        f"expected a single warning covering all 17, got {spec['warnings']}"
+
+
+# The leftover sweep must require the straggler's OWN keyword match — an
+# unrelated small icon sitting beside a real swarm (no noise keyword on it)
+# must survive untouched. Needs its own visual (background) or the browser
+# itself renders nothing for it (correctly excluded regardless of the swarm
+# logic) — an empty box with no fill/border/text is invisible either way.
+_UNRELATED_ICON = ('<i class="rating-star" style="display:inline-block; position:absolute; '
+                   'top:50%;left:50%; width:9px; height:9px; background:#fff;"></i>')
+MIXED_SWARM_HTML = f"""<!doctype html><html><head><style>
+  body {{ margin:0; width:800px; height:600px; background:#111; position:relative; }}
+</style></head><body>
+  <div class="particles">{_MAIN_CLUSTER}{_UNRELATED_ICON}</div>
+</body></html>"""
+
+
+def test_leftover_sweep_requires_own_keyword_match(tmp_path):
+    spec = run_extract(MIXED_SWARM_HTML, tmp_path)
+    survivors = [e for e in spec["elements"] if e["width"] <= 12 and e["height"] <= 12]
+    assert len(survivors) == 1 and "rating-star" in survivors[0].get("name", ""), \
+        f"the unrelated non-keyword icon must survive, got {survivors}"

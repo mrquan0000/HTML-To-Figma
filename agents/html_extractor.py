@@ -607,7 +607,19 @@ _EXTRACT_JS = r"""
                 const els = best.map(c => c.el);
                 const keyword = noiseMatch(parent) || els.some(noiseMatch);
                 if (best.length >= 12 || keyword) {
-                    return { decision: 'drop', set: new Set(els), count: best.length, keyword };
+                    // Sweep up any OTHER same-parent tiny/textless leaf that
+                    // individually carries a noise keyword too — a straggler
+                    // from the SAME swarm that just missed the ±2px same-size
+                    // bucket (e.g. scene_12's .neuron-particle leaves: 14 at
+                    // 4-5px form `best`, but 3 more at 3px sit just outside
+                    // that bucket after animation-freeze transforms shift
+                    // their rendered size). Requires the leftover's OWN
+                    // keyword match — never swept in on proximity alone — so
+                    // an unrelated small icon beside a real swarm is safe.
+                    const bestSet = new Set(els);
+                    const leftover = dropCands.filter(c => !bestSet.has(c.el) && noiseMatch(c.el));
+                    const allEls = els.concat(leftover.map(c => c.el));
+                    return { decision: 'drop', set: new Set(allEls), count: allEls.length, keyword };
                 }
             }
         }
