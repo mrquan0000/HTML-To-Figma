@@ -159,3 +159,31 @@ def test_gradient_and_blur_compose_on_same_element(tmp_path):
     assert fill["type"] == "SOLID"
     assert abs(fill["color"]["r"] - 0.3) < 0.02
     assert any(e["type"] == "LAYER_BLUR" for e in shapes[0].get("effects", []))
+
+
+# Fade-in/fade-out edges (transparent stops) around a solid middle color — a
+# common "glow line" / vignette-edge pattern (scene_12's underline). The
+# transparent stops carry NO real color (their rgb is just a parse default,
+# not a genuine dark color) and must not be allowed to win "darkest" and drag
+# the blended color/alpha toward black — the visually-dominant solid middle
+# color must win instead.
+FADE_EDGES_HTML = """<!doctype html><html><head><style>
+  body { margin:0; width:800px; height:600px; background:#111; position:relative; }
+  .underline { position:absolute; top:100px; left:100px; width:300px; height:20px;
+               background: linear-gradient(90deg, transparent 0%, #35CC23 10%, #35CC23 90%, transparent 100%); }
+</style></head><body><div class="underline"></div></body></html>"""
+
+
+def test_fade_transparent_edges_dont_drag_color_toward_black(tmp_path):
+    spec = run_extract(FADE_EDGES_HTML, tmp_path)
+    shapes = [e for e in spec["elements"] if e["type"] in ("rectangle", "ellipse")]
+    assert len(shapes) == 1
+    fill = shapes[0]["fills"][0]
+    assert fill["type"] == "SOLID"
+    c = fill["color"]
+    # #35CC23 = rgb(53,204,35)/255 ≈ (0.208, 0.800, 0.137) — the true solid
+    # middle color, not diluted by the transparent edge stops.
+    assert abs(c["r"] - 0.2078) < 0.01
+    assert abs(c["g"] - 0.8) < 0.01
+    assert abs(c["b"] - 0.1373) < 0.01
+    assert c["a"] > 0.99, f"alpha must not be dragged down by transparent stops, got {c['a']}"

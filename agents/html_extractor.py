@@ -1325,8 +1325,16 @@ def _blend_gradient_to_solid(stops: list[dict]) -> dict:
     def lightness(stop):
         c = stop["color"]
         return colorsys.rgb_to_hls(c["r"], c["g"], c["b"])[1]
-    darkest = min(stops, key=lightness)["color"]
-    lightest = max(stops, key=lightness)["color"]
+    # A stop with alpha=0 (CSS `transparent`, e.g. a fade-in/fade-out edge like
+    # `linear-gradient(90deg, transparent 0%, var(--positive) 10%, ...)`)
+    # carries NO real color — its rgb is just the parser's default fallback,
+    # not a genuine dark color — so it must not be allowed to win "darkest"
+    # and drag the blended color/alpha down. Filter such stops out before
+    # picking extremes; fall back to the full list only if every stop is
+    # transparent (a fully invisible gradient, degenerate/rare).
+    opaque_stops = [s for s in stops if s["color"].get("a", 1.0) > 0] or stops
+    darkest = min(opaque_stops, key=lightness)["color"]
+    lightest = max(opaque_stops, key=lightness)["color"]
     return {
         "r": round(darkest["r"] * 0.7 + lightest["r"] * 0.3, 4),
         "g": round(darkest["g"] * 0.7 + lightest["g"] * 0.3, 4),
