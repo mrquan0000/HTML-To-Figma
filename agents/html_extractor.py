@@ -482,6 +482,20 @@ _EXTRACT_JS = r"""
         if (!drop) return null;
         return { set: new Set(best), count: best.length, keyword };
     }
+
+    // Emit the skip warning for a detected swarm under `el` (el may be the frame
+    // root or any element). No-op if swarm is null.
+    function noteSwarm(el, swarm) {
+        if (!swarm) return;
+        const label = el.getAttribute('class')
+            ? '.' + el.getAttribute('class').split(/\s+/)[0]
+            : '<' + el.tagName.toLowerCase() + '>';
+        const how = swarm.keyword
+            ? 'structural+keyword'
+            : 'structural-only, N=' + swarm.count;
+        skipWarnings.push('skipped decorative swarm: ' + swarm.count
+            + ' leaves under ' + label + ' (match: ' + how + ')');
+    }
     // ───────────────────────────────────────────────────────────────────────
 
     function visit(el, parentUid, parentVisualUid, brightnessMul = 1) {
@@ -625,16 +639,7 @@ _EXTRACT_JS = r"""
         }
 
         const swarm = decorativeSwarmChildren(el);
-        if (swarm) {
-            const label = el.getAttribute('class')
-                ? '.' + el.getAttribute('class').split(/\s+/)[0]
-                : '<' + tag + '>';
-            const how = swarm.keyword
-                ? 'structural+keyword'
-                : 'structural-only, N=' + swarm.count;
-            skipWarnings.push('skipped decorative swarm: ' + swarm.count
-                + ' leaves under ' + label + ' (match: ' + how + ')');
-        }
+        noteSwarm(el, swarm);
         for (const child of el.children) {
             if (swarm && swarm.set.has(child)) continue;
             visit(child, parentUid, visualParent, effectiveBrightness);
@@ -645,7 +650,10 @@ _EXTRACT_JS = r"""
     // offscreen bg-clones, and body.children is a live HTMLCollection that would
     // otherwise pick them up mid-iteration and skew normalization.
     const topLevel = Array.from(frameRoot.children);
+    const rootSwarm = decorativeSwarmChildren(frameRoot);
+    noteSwarm(frameRoot, rootSwarm);
     for (const child of topLevel) {
+        if (rootSwarm && rootSwarm.set.has(child)) continue;
         visit(child, null, null);
     }
     // Also include frameRoot's own background if it has one
