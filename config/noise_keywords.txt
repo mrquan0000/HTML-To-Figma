@@ -1,0 +1,20 @@
+# Extra decorative-noise keywords — user-curated.
+#
+# One token per line, case-insensitive. A token is matched as a SUBSTRING against
+# the class names of a swarm-shaped group (≥8 near-equal-size, tiny, textless
+# sibling leaves). A match lets that group be dropped at N≥8 instead of needing
+# N≥12 by structure alone.
+#
+# The built-in CORE list (particle, mote, dust, spark, bokeh, snow, ember, fleck,
+# speck, twinkle) is ALWAYS active and cannot be removed here — this file only
+# ADDS to it, so a bad edit can never weaken the safe core.
+#
+# HOW TO GROW THIS LIST (the review → exclude loop):
+#   1. Run the extractor on your scenes (output/*_spec.json get a "noise_review" list).
+#   2. Run:  .venv/bin/python utils/review_noise.py
+#      It ranks candidate class tokens seen in near-miss swarms, with which scenes.
+#   3. For each token you CONFIRM is decorative (and won't collide with real UI —
+#      e.g. never add "dot"/"star"/"nav"/"tab"), add it as a line below.
+#   4. Re-run the extractor; those groups now drop automatically.
+#
+# Lines starting with # and blank lines are ignored. Add your tokens below:

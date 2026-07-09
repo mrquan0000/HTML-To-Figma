@@ -145,10 +145,14 @@ ORB_HTML = f"""<!doctype html><html><head><style>
 </style></head><body>{_ORBS}</body></html>"""
 
 
+def _review_classes(spec):
+    return {c for e in spec.get("noise_review", []) for c in e.get("classes", [])}
+
+
 def test_review_flags_keywordless_swarm(tmp_path):
     spec = run_extract(ORB_HTML, tmp_path)
-    rev = " ".join(spec.get("noise_review", []))
-    assert "orb" in rev, f"review log should surface the 'orb' class; got {spec.get('noise_review')}"
+    assert "orb" in _review_classes(spec), \
+        f"review log should surface the 'orb' class; got {spec.get('noise_review')}"
     # It was flagged, NOT dropped.
     assert not any("skipped decorative swarm" in w for w in spec["warnings"])
 
@@ -164,8 +168,8 @@ BLOB_HTML = f"""<!doctype html><html><head><style>
 
 def test_review_flags_oversized_repeated_leaves(tmp_path):
     spec = run_extract(BLOB_HTML, tmp_path)
-    rev = " ".join(spec.get("noise_review", []))
-    assert "blob" in rev, f"20px repeated leaves should be flagged; got {spec.get('noise_review')}"
+    assert "blob" in _review_classes(spec), \
+        f"20px repeated leaves should be flagged; got {spec.get('noise_review')}"
     # 20px leaves are NOT dropped — they remain as real elements.
     assert len(spec["elements"]) >= 10
 
@@ -177,3 +181,23 @@ def test_dropped_swarm_not_in_review(tmp_path):
     assert spec.get("noise_review", []) == [], \
         f"a dropped swarm must not appear in review; got {spec.get('noise_review')}"
     assert any("skipped decorative swarm" in w for w in spec["warnings"])
+
+
+# ── The review → exclude loop: a token added to the config file makes a
+#    previously-only-reviewed swarm actually drop on the next run. ──
+def test_config_keyword_promotes_swarm_to_drop(tmp_path, monkeypatch):
+    # Baseline: 9 .orb leaves are only REVIEWED (no keyword, N<12).
+    baseline = run_extract(ORB_HTML, tmp_path)
+    assert "orb" in _review_classes(baseline)
+    assert not any("skipped decorative swarm" in w for w in baseline["warnings"])
+
+    # Add 'orb' to a config file and point the loader at it → now it's a keyword,
+    # so the 9-orb swarm (N≥8 && keyword) DROPS and leaves the review log.
+    kw = tmp_path / "noise_keywords.txt"
+    kw.write_text("# my extras\norb\n", encoding="utf-8")
+    monkeypatch.setenv("NOISE_KEYWORDS_FILE", str(kw))
+
+    after = run_extract(ORB_HTML, tmp_path)
+    assert any("skipped decorative swarm" in w for w in after["warnings"]), \
+        "with 'orb' configured, the swarm must now drop"
+    assert "orb" not in _review_classes(after), "a dropped swarm leaves the review log"

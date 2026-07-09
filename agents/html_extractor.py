@@ -83,6 +83,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import re
 import sys
 from pathlib import Path
@@ -93,7 +94,7 @@ from pathlib import Path
 # ═════════════════════════════════════════════════════════════════════════════
 
 _EXTRACT_JS = r"""
-() => {
+(extraNoiseWords) => {
     const SKIP_TAGS = new Set(['SCRIPT','STYLE','HEAD','META','LINK','NOSCRIPT','TITLE']);
     const TEXT_TAGS = new Set(['H1','H2','H3','H4','H5','H6','P','SPAN','LABEL','LI','A','STRONG','EM','B','I','SMALL','CODE']);
 
@@ -438,6 +439,11 @@ _EXTRACT_JS = r"""
     // real element like `.glowing-text` (has text) can't be dropped by name.
     const NOISE_WORDS = ['particle','mote','dust','spark','bokeh','snow',
                          'ember','fleck','speck','twinkle'];
+    // Merge in user-curated extras from config/noise_keywords.txt (passed by the
+    // Python caller). The core above is always active; extras only ADD.
+    if (Array.isArray(extraNoiseWords)) {
+        for (const w of extraNoiseWords) if (w) NOISE_WORDS.push(String(w).toLowerCase());
+    }
 
     function noiseMatch(el) {
         const cls = (el.getAttribute('class') || '').toLowerCase();
@@ -525,8 +531,10 @@ _EXTRACT_JS = r"""
             + ' leaves under ' + labelOf(el) + ' (match: ' + how + ')');
     }
 
-    // Log a KEPT-but-suspect swarm to the review diagnostic, capturing the group's
-    // distinct class tokens (candidate new keywords) and size range.
+    // Log a KEPT-but-suspect swarm to the review diagnostic as a STRUCTURED entry
+    // (so utils/review_noise.py can aggregate cleanly), capturing the group's
+    // distinct class tokens (candidate new keywords), size range, and a
+    // human-readable message for eyeballing a single spec.
     function noteReview(el, swarm) {
         const tokens = new Set();
         let minS = Infinity, maxS = 0;
@@ -537,11 +545,19 @@ _EXTRACT_JS = r"""
             if (s < minS) minS = s;
             if (s > maxS) maxS = s;
         }
-        noiseReview.push('potential swarm kept for review: ' + swarm.count
-            + ' leaves under ' + labelOf(el)
-            + ' (classes: ' + Array.from(tokens).join(', ')
-            + '; sizes ' + Math.round(minS) + '–' + Math.round(maxS) + 'px'
-            + '; kept: no keyword & N<12)');
+        const classes = Array.from(tokens);
+        const parent = labelOf(el);
+        minS = Math.round(minS); maxS = Math.round(maxS);
+        noiseReview.push({
+            parent: parent,
+            count: swarm.count,
+            classes: classes,
+            size_min: minS,
+            size_max: maxS,
+            message: 'potential swarm kept for review: ' + swarm.count + ' leaves under '
+                + parent + ' (classes: ' + classes.join(', ')
+                + '; sizes ' + minS + '–' + maxS + 'px; kept: no keyword & N<12)',
+        });
     }
 
     // Route a classified swarm to the right log. Returns the drop-set (or null).
@@ -843,6 +859,28 @@ _MEASURE_CANVAS_JS = r"""
 # at the old 600px default). An explicit value always overrides.
 PROBE_WIDTH = 1600
 DEFAULT_WIDTH = 600
+
+# User-curated extra decorative-noise keywords, merged on top of the built-in core
+# (defined inside _EXTRACT_JS). Path overridable via NOISE_KEYWORDS_FILE (tests).
+_NOISE_KEYWORDS_FILE = Path(__file__).resolve().parent.parent / "config" / "noise_keywords.txt"
+
+
+def load_noise_keywords() -> list[str]:
+    """Return extra noise keywords from config/noise_keywords.txt (one token per
+    line; '#' comments and blank lines ignored). Missing file → empty list. These
+    are ADDED to the JS core list, never replace it, so the safe core is protected."""
+    path = os.environ.get("NOISE_KEYWORDS_FILE")
+    path = Path(path) if path else _NOISE_KEYWORDS_FILE
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        return []
+    words = []
+    for line in lines:
+        token = line.strip().lower()
+        if token and not token.startswith("#"):
+            words.append(token)
+    return words
 # Fully-fluid responsive pages expose no design width (no fixed canvas, no px
 # max-width). They are desktop-first: rendering at 600 collapses responsive
 # multi-column grids to their mobile (1-column) breakpoint. Render at a
@@ -1681,7 +1719,7 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
         """)
         page.wait_for_timeout(100)
 
-        result = page.evaluate(_EXTRACT_JS)
+        result = page.evaluate(_EXTRACT_JS, load_noise_keywords())
         raw_elements = result["elements"]
         warnings.extend(result.get("warnings", []))
         noise_review = result.get("noiseReview", [])

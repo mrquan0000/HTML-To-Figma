@@ -28,7 +28,7 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 from agents.html_extractor import (  # noqa: E402
     _DETECT_DESIGN_JS, _EXTRACT_JS, _MEASURE_CANVAS_JS, PROBE_WIDTH,
-    decide_design_viewport, compute_frame_size,
+    decide_design_viewport, compute_frame_size, load_noise_keywords,
 )
 
 
@@ -123,7 +123,7 @@ def main():
         """)
         page.wait_for_timeout(100)
 
-        result = page.evaluate(_EXTRACT_JS)
+        result = page.evaluate(_EXTRACT_JS, load_noise_keywords())
         raw_elements = result["elements"]
         frame_w, frame_h = result["frameWidth"], result["frameHeight"]
 
