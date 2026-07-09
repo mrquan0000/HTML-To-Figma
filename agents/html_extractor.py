@@ -343,11 +343,19 @@ _EXTRACT_JS = r"""
         return false;
     }
 
-    // A filter string made up ONLY of drop-shadow() functions (glow/shadow) —
-    // no blur/brightness/etc. These map 1:1 to Figma DROP_SHADOW effects.
-    function filterIsOnlyDropShadow(filter) {
+    // A filter string made up ONLY of blur() and/or drop-shadow() functions
+    // (any count/combination of either) — these map straight onto Figma's
+    // LAYER_BLUR / DROP_SHADOW effects (no rasterization needed) whether the
+    // element is a leaf or a container: Figma's LAYER_BLUR on a frame blurs
+    // the whole rendered composite, matching CSS filter:blur() on a
+    // container. Any other/combined filter (hue-rotate, contrast, ...) still
+    // rasterizes.
+    function filterIsBlurAndOrDropShadow(filter) {
         if (!filter || filter === 'none') return false;
-        const stripped = filter.replace(/drop-shadow\((?:[^()]|\([^()]*\))*\)/g, '').trim();
+        const stripped = filter
+            .replace(/blur\([^)]*\)/g, '')
+            .replace(/drop-shadow\((?:[^()]|\([^()]*\))*\)/g, '')
+            .trim();
         return stripped === '';
     }
 
@@ -356,16 +364,17 @@ _EXTRACT_JS = r"""
         // <img> pixels can't be drawn natively → rasterize the rendered box.
         if (el.tagName === 'IMG')                            return 'raster';
         if (cs.filter && cs.filter !== 'none') {
-            // Leaf text whose ONLY filter is drop-shadow(s) (a glow/soft shadow)
-            // stays NATIVE: Figma renders the glow as a DROP_SHADOW effect and the
-            // text remains editable (animatable in AE). A container-level (or
-            // leaf) filter that is ONLY brightness() also stays NATIVE: it's a
-            // linear R/G/B multiply, baked into each descendant's own color by
-            // styleSnapshot/extractRuns (see visit()'s brightnessMul threading)
-            // instead of rasterizing the whole subtree — keeps e.g. a dimmed
-            // card's icon/text/shape as separate editable Figma layers. Any
-            // richer/combined filter (blur, hue-rotate, …) still rasterizes.
-            const keepNative = (filterIsOnlyDropShadow(cs.filter) && hasDirectText && !hasElemChildren)
+            // A filter made up ONLY of blur()/drop-shadow() (any mix) stays
+            // NATIVE — both map onto Figma effects (LAYER_BLUR/DROP_SHADOW),
+            // for leaf or container alike (see filterIsBlurAndOrDropShadow).
+            // A container-level (or leaf) filter that is ONLY brightness()
+            // also stays NATIVE: it's a linear R/G/B multiply, baked into
+            // each descendant's own color by styleSnapshot/extractRuns (see
+            // visit()'s brightnessMul threading) instead of rasterizing the
+            // whole subtree. Any richer/combined filter (hue-rotate,
+            // contrast, blur/drop-shadow mixed with something else, …) still
+            // rasterizes.
+            const keepNative = filterIsBlurAndOrDropShadow(cs.filter)
                              || parseBrightnessOnly(cs.filter) !== null;
             if (!keepNative)                                 return 'raster';
         }
@@ -1256,6 +1265,14 @@ def _parse_filter_drop_shadows(filter_str: str) -> list[dict]:
     return out
 
 
+def _parse_filter_blur(filter_str: str) -> float | None:
+    """Parse `filter: blur(Npx)` → radius in px, or None if absent."""
+    if not filter_str or filter_str == "none":
+        return None
+    m = re.search(r"blur\(([\d.]+)px\)", filter_str)
+    return float(m[1]) if m else None
+
+
 def _parse_transform_rotation(transform: str) -> float:
     """Extract rotation angle (degrees) from CSS transform matrix. Returns 0 if none."""
     if not transform or transform == "none":
@@ -1419,6 +1436,21 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
     bm = re.search(r"blur\(([\d.]+)px\)", bf)
     if bm:
         effects.append({"type": "BACKGROUND_BLUR", "radius": float(bm[1])})
+    # filter:blur()/drop-shadow() map to native effects — classify() only let
+    # a pure blur/drop-shadow filter reach here (see filterIsBlurAndOrDropShadow).
+    # SKIP this for a PURE TEXT LEAF (direct text, no element children): its
+    # filter-effects are attached to the TEXT node instead (see text_effects
+    # below, Step 6) — otherwise a phantom background rectangle/frame would
+    # appear with the same rectangular DROP_SHADOW/LAYER_BLUR, which CSS never
+    # renders for filter:blur()/drop-shadow() on plain text (those are
+    # glyph-shaped, not box-shaped).
+    is_pure_text_leaf = bool(raw.get("runs")) and not raw.get("hasElementChildren")
+    if not is_pure_text_leaf:
+        filter_str = cs.get("filter", "")
+        filter_blur_radius = _parse_filter_blur(filter_str)
+        if filter_blur_radius is not None:
+            effects.append({"type": "LAYER_BLUR", "radius": filter_blur_radius})
+        effects.extend(_parse_filter_drop_shadows(filter_str))
 
     # ─── Decision: ellipse vs rectangle vs frame ─────────────────────────────
     is_circle = (abs(w - h) <= 1) and all(c >= min(w, h) / 2 - 1 for c in corner_radii) and any(c > 0 for c in corner_radii)
@@ -1550,10 +1582,16 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
 
         # Build name from first run text
         preview = (runs[0]["text"] if runs else "").strip()[:24].replace("\n", " ")
-        # filter:drop-shadow (glow/soft shadow) → native DROP_SHADOW on the text node
-        # (box-shadow stays on the emitted shape, if any). Lets glowing text stay
-        # editable instead of being rasterized.
-        text_effects = _parse_filter_drop_shadows(cs.get("filter", ""))
+        # filter:blur()/drop-shadow() (glow/soft shadow) → native LAYER_BLUR/
+        # DROP_SHADOW on the text node (box-shadow stays on the emitted shape,
+        # if any). Lets blurred/glowing text stay editable instead of being
+        # rasterized. (Shape-level effects skip this for a pure text leaf —
+        # see the `is_pure_text_leaf` guard above — so it isn't duplicated.)
+        text_filter_str = cs.get("filter", "")
+        text_effects = _parse_filter_drop_shadows(text_filter_str)
+        text_filter_blur_radius = _parse_filter_blur(text_filter_str)
+        if text_filter_blur_radius is not None:
+            text_effects.append({"type": "LAYER_BLUR", "radius": text_filter_blur_radius})
         # -webkit-text-stroke (glyph rim/outline) → Figma text-node stroke, so the
         # text stays editable with its outline (e.g. scene_18 glowing "?"). Figma
         # text strokes paint centered on the glyph path like CSS text-stroke.
