@@ -360,21 +360,28 @@ _EXTRACT_JS = r"""
         return stripped === '';
     }
 
-    // True when `backgroundImage` STARTS with linear-gradient(/radial-gradient(
-    // and has no conic/repeating prefix — mirrors the Python-side
-    // `_parse_gradient()` regex so classify()'s decision never disagrees with
-    // what the color-blend step can actually parse. NOTE: a genuinely stacked
-    // multi-layer background (e.g. `linear-gradient(a,b), linear-gradient(c,d)`)
-    // can still match here — the greedy regex doesn't reject a trailing
-    // comma-separated layer, same pre-existing fragility as _parse_gradient()
-    // below, which this deliberately mirrors. Not fixed: no scene in
-    // input/*.html hits this, and approximating a stacked gradient to one
-    // solid color is still a safe (if slightly-off) direction given
-    // editability is the priority — it never regresses toward MORE raster,
-    // just toward a possibly-mis-picked native color. Revisit if a real
-    // multi-layer-gradient scene surfaces.
+    // True when `backgroundImage` is EXACTLY one linear-gradient(...) or
+    // radial-gradient(...) call filling the ENTIRE value — no stacked/
+    // multi-layer backgrounds, no conic/repeating. Rejects a trailing
+    // comma-separated layer by checking the gradient's own closing paren
+    // (tracked by depth) is the LAST character of the string, not just
+    // matched somewhere via a greedy `.+` (a naive regex would wrongly
+    // accept `linear-gradient(a,b), linear-gradient(c,d)` as "simple" and
+    // blend unrelated stops/alphas from the second layer into the first).
     function isSimpleGradientBg(backgroundImage) {
-        return /^(linear|radial)-gradient\(.+\)$/s.test((backgroundImage || '').trim());
+        const s = (backgroundImage || '').trim();
+        const m = s.match(/^(linear|radial)-gradient\(/);
+        if (!m) return false;
+        let depth = 0;
+        for (let i = m[0].length - 1; i < s.length; i++) {
+            const ch = s[i];
+            if (ch === '(') depth++;
+            else if (ch === ')') {
+                depth--;
+                if (depth === 0) return i === s.length - 1;
+            }
+        }
+        return false;
     }
 
     function classify(el, cs, hasDirectText, hasElemChildren, w, h) {

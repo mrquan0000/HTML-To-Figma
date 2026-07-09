@@ -99,3 +99,20 @@ def test_conic_gradient_still_rasters(tmp_path):
     spec = run_extract(CONIC_HTML, tmp_path)
     raster = [e for e in spec["elements"] if e["type"] == "image"]
     assert len(raster) == 1, "conic-gradient is out of scope, must still raster"
+
+
+# Stacked/multi-layer background (two gradients, comma-separated at the top
+# level) — must still raster. A naive check could wrongly treat this as one
+# "simple" gradient and blend unrelated stops/alphas from the second layer.
+STACKED_LAYERS_HTML = """<!doctype html><html><head><style>
+  body { margin:0; width:800px; height:600px; background:#222; position:relative; }
+  .card { position:absolute; top:100px; left:100px; width:200px; height:120px;
+          background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 100%),
+                      linear-gradient(180deg, #ff0000 0%, #0000ff 100%); }
+</style></head><body><div class="card"></div></body></html>"""
+
+
+def test_stacked_multilayer_gradient_still_rasters(tmp_path):
+    spec = run_extract(STACKED_LAYERS_HTML, tmp_path)
+    raster = [e for e in spec["elements"] if e["type"] == "image"]
+    assert len(raster) == 1, "a stacked multi-layer gradient background must still raster"
