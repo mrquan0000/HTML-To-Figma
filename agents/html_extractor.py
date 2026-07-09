@@ -222,6 +222,55 @@ _EXTRACT_JS = r"""
         } catch (e) { return null; }
     }
 
+    // Detects whether an element's rendered text occupies exactly ONE visual
+    // line (all fragments share the same top position) — guards the
+    // squeezed-line-height ink-rect fix below so it never touches genuinely
+    // multi-line text (which legitimately needs several lines' worth of height).
+    function isSingleLineRange(el) {
+        try {
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const rects = Array.from(range.getClientRects()).filter(r => r.width > 0 && r.height > 0);
+            if (rects.length === 0) return false;
+            const top0 = rects[0].top;
+            return rects.every(r => Math.abs(r.top - top0) < 2);
+        } catch (e) { return false; }
+    }
+
+    // A giant decorative numeral/label with CSS line-height squeezed much
+    // tighter than the font's natural single-line height (e.g. line-height:.82
+    // on a 550px numeral) makes the DOM's own measured box — getBoundingClientRect(),
+    // and even Range.getClientRects() (still driven by the inline formatting
+    // context's own "strut", not true glyph ink) — render far TALLER than the
+    // glyph's visible ink. Figma then auto-sizes the text node at its own
+    // ~1.2 line-height ratio, overflowing past where the browser shows it
+    // (tight-lineheight-numeral-mismatch: scene_2, recurred scene_9's twin-span
+    // "3D numeral" — .number-extrusion/.number-front). Measures the TRUE ink
+    // extent via Canvas 2D measureText() (actualBoundingBox*), then re-centers
+    // it on the ORIGINAL box's own center — CSS keeps that center point correct
+    // via baseline/vertical-align even when the box's total height is wrong.
+    let _measureCanvas = null;
+    function trueInkRect(el, elX, elY, boxRect) {
+        try {
+            const text = (el.textContent || '').trim();
+            if (!text) return null;
+            const cs = window.getComputedStyle(el);
+            if (!_measureCanvas) _measureCanvas = document.createElement('canvas');
+            const ctx = _measureCanvas.getContext('2d');
+            ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+            const m = ctx.measureText(text);
+            if (!('actualBoundingBoxAscent' in m)) return null;
+            const inkW = m.actualBoundingBoxLeft + m.actualBoundingBoxRight;
+            const inkH = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+            if (!(inkW > 0) || !(inkH > 0)) return null;
+            const cx = boxRect.x + boxRect.w / 2;
+            const cy = boxRect.y + boxRect.h / 2;
+            const x0 = cx - inkW / 2, y0 = cy - inkH / 2;
+            return {dx: (x0 - frameRect.left) - elX, dy: (y0 - frameRect.top) - elY,
+                    w: Math.round(inkW), h: Math.round(inkH)};
+        } catch (e) { return null; }
+    }
+
     // Frame root = body. All top-level layout (ambient layers, main container, etc.)
     // becomes children. Body background is captured separately as frame_bg.
     function findFrameRoot() { return document.body; }
@@ -717,6 +766,14 @@ _EXTRACT_JS = r"""
                 }
             }
 
+            // Squeezed line-height detection (see trueInkRect above): only a
+            // pure text leaf (no element children) whose measured height
+            // significantly exceeds its own line-height, confirmed single-line.
+            const lhPx = parseFloat(cs.lineHeight);
+            const isSqueezed = hasDirectText && !hasElementChildren
+                && !isNaN(lhPx) && h > lhPx * 1.3
+                && isSingleLineRange(el);
+
             const elem = {
                 uid: myUid, parent_uid: parentVisualUid,
                 kind: 'native',
@@ -731,6 +788,7 @@ _EXTRACT_JS = r"""
                 opacity: parseFloat(cs.opacity),
                 isGradientContainer: isGradientContainer,
                 textRect: hasDirectText ? textBoxOffset(el, x, y) : null,
+                inkRectOverride: isSqueezed ? trueInkRect(el, x, y, r) : null,
                 isCanvas: el.hasAttribute('data-detected-canvas'),
             };
             out.push(elem);
@@ -1712,6 +1770,28 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
             "stroke_weight": text_stroke_weight,
             "stroke_align": "CENTER",
         }
+        # A giant decorative numeral/label with CSS line-height squeezed much
+        # tighter than the font's natural single-line height makes the DOM's
+        # measured box far TALLER than the glyph's true ink — see trueInkRect()
+        # in _EXTRACT_JS (tight-lineheight-numeral-mismatch: scene_2, recurred
+        # scene_9's twin-span "3D numeral"). `inkRectOverride` (Canvas-measured
+        # true ink, re-centered on the original box) takes priority over the
+        # text-on-box override below — it's only ever set for a squeezed
+        # single-line text LEAF (no element children), independent of whether
+        # a shape was also emitted for it.
+        ink = raw.get("inkRectOverride")
+        if ink and rotation == 0:
+            text_elem["x"] = round(base["x"] + ink["dx"])
+            text_elem["y"] = round(base["y"] + ink["dy"])
+            text_elem["width"] = ink["w"]
+            text_elem["height"] = ink["h"]
+            # figma_builder.py's single-line auto-width safety net (skip resize
+            # to avoid Figma wrapping/clipping on font-metric drift) must NOT
+            # apply here — this geometry is a deliberate Canvas-measured
+            # correction, not the raw (already-fine) single-line box, so the
+            # builder must always force it. See figma_builder.py's is_multiline
+            # check.
+            text_elem["exact_size"] = True
         # When text is painted directly on a plain box (rectangle/ellipse), `base`
         # is the BOX geometry, not the text's. A single-word label that the browser
         # lays out on one line OVERFLOWING a narrow fixed box would otherwise be
@@ -1722,7 +1802,7 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
         # frame (no element children) and unrotated (a rotated box's text AABB would
         # fight the rotation node property).
         tr = raw.get("textRect")
-        if tr and emit_shape and shape_type != "frame" and rotation == 0:
+        if not ink and tr and emit_shape and shape_type != "frame" and rotation == 0:
             text_elem["x"] = round(base["x"] + tr["dx"])
             text_elem["y"] = round(base["y"] + tr["dy"])
             text_elem["width"] = tr["w"]
@@ -1737,7 +1817,9 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
         # by resizing the built node: +5px was enough to stop the wrap).
         # Nudge the width out by a small cushion ONLY at that zero-slack
         # boundary — an author-sized box with real wrap slack is untouched.
-        if tr and abs(text_elem["width"] - tr["w"]) <= 2:
+        if ink:
+            text_elem["width"] += 6
+        elif tr and abs(text_elem["width"] - tr["w"]) <= 2:
             text_elem["width"] += 6
         elements_out.append(text_elem)
 

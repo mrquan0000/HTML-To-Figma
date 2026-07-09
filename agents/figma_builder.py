@@ -527,8 +527,14 @@ class FigmaBuilder:
         # Resize only multi-line/wrapping paragraphs to their laid-out box.
         # Single-line text keeps Figma's auto-width so it never wraps/clips when
         # the platform font renders slightly wider than Chromium measured.
+        # EXCEPTION: `exact_size` (set by the extractor's squeezed-line-height
+        # ink-rect correction — a giant decorative numeral/label whose true
+        # glyph ink is deliberately Canvas-measured, not just its raw box) must
+        # always be forced — otherwise Figma's own auto-height (a different,
+        # often much larger, font-metric ratio) silently overrides the
+        # corrected geometry, undoing the fix entirely.
         lh = el.get("line_height") or float(font_size) * 1.2
-        is_multiline = ("\n" in full_text) or (el["height"] > lh * 1.4)
+        is_multiline = el.get("exact_size") or ("\n" in full_text) or (el["height"] > lh * 1.4)
         if is_multiline:
             try:
                 self.client.call_tool("resize_nodes", {
