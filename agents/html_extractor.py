@@ -1453,7 +1453,11 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
     bg_color = _color_to_rgba(cs.get("backgroundColor", ""))
     has_gradient_bg = bool(raw.get("_bg_asset_filename"))
     bg_image = cs.get("backgroundImage", "")
-    is_gradient_clip_text = bool(raw.get("runs")) and cs.get("webkitTextFillColor", "") in ("rgba(0, 0, 0, 0)", "transparent")
+    is_gradient_clip_text = (
+        bool(raw.get("runs"))
+        and cs.get("webkitTextFillColor", "") in ("rgba(0, 0, 0, 0)", "transparent")
+        and cs.get("backgroundClip", "") == "text"
+    )
     if not has_gradient_bg and not raw.get("hasElementChildren") and not is_gradient_clip_text and "gradient" in bg_image:
         grad = _parse_gradient(bg_image)
         if grad:

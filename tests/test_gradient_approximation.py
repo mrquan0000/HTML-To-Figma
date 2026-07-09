@@ -116,3 +116,46 @@ def test_stacked_multilayer_gradient_still_rasters(tmp_path):
     spec = run_extract(STACKED_LAYERS_HTML, tmp_path)
     raster = [e for e in spec["elements"] if e["type"] == "image"]
     assert len(raster) == 1, "a stacked multi-layer gradient background must still raster"
+
+
+# A transparent-text element with its OWN gradient background but WITHOUT
+# background-clip:text (e.g. a visually-hidden label over a decorative
+# gradient card) is NOT gradient-clip-text — it must still get the shape's
+# gradient approximated to a solid fill, not silently lose it.
+HIDDEN_TEXT_ON_GRADIENT_HTML = """<!doctype html><html><head><style>
+  body { margin:0; width:800px; height:600px; background:#222; position:relative; }
+  .card { position:absolute; top:100px; left:100px; width:200px; height:120px;
+          background: linear-gradient(90deg, #000000 0%, #ffffff 100%);
+          color: transparent; -webkit-text-fill-color: transparent; }
+</style></head><body><div class="card">hidden label</div></body></html>"""
+
+
+def test_transparent_text_on_gradient_card_keeps_solid_fill(tmp_path):
+    spec = run_extract(HIDDEN_TEXT_ON_GRADIENT_HTML, tmp_path)
+    shapes = [e for e in spec["elements"] if e["type"] in ("rectangle", "ellipse", "frame")]
+    assert len(shapes) == 1, "the gradient card's own fill must not silently disappear"
+    fill = shapes[0]["fills"][0]
+    assert fill["type"] == "SOLID"
+    c = fill["color"]
+    assert abs(c["r"] - 0.3) < 0.02, f"expected 70% black + 30% white blend, got {c}"
+
+
+# A shape with BOTH a qualifying gradient background AND a qualifying blur
+# filter must get BOTH treatments: solid fill (gradient approximation) AND
+# a LAYER_BLUR effect — proving Task 1 and Task 2's logic compose correctly.
+GRADIENT_AND_BLUR_HTML = """<!doctype html><html><head><style>
+  body { margin:0; width:800px; height:600px; background:#222; position:relative; }
+  .card { position:absolute; top:100px; left:100px; width:200px; height:120px;
+          background: linear-gradient(90deg, #000000 0%, #ffffff 100%);
+          filter: blur(3px); }
+</style></head><body><div class="card"></div></body></html>"""
+
+
+def test_gradient_and_blur_compose_on_same_element(tmp_path):
+    spec = run_extract(GRADIENT_AND_BLUR_HTML, tmp_path)
+    shapes = [e for e in spec["elements"] if e["type"] in ("rectangle", "ellipse")]
+    assert len(shapes) == 1
+    fill = shapes[0]["fills"][0]
+    assert fill["type"] == "SOLID"
+    assert abs(fill["color"]["r"] - 0.3) < 0.02
+    assert any(e["type"] == "LAYER_BLUR" for e in shapes[0].get("effects", []))
