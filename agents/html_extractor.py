@@ -427,7 +427,62 @@ _EXTRACT_JS = r"""
     const bodyCS = window.getComputedStyle(document.body);
 
     const out = [];
+    const skipWarnings = [];
     let docOrder = 0;
+
+    // ─── Decorative-noise swarm detection ──────────────────────────────────
+    // Drop swarms of tiny textless "particle/dust/mote" leaves (they explode
+    // into piles of dead Figma layers never animated in AE). Structure decides;
+    // the keyword list only raises confidence and NEVER fires on its own, so a
+    // real element like `.glowing-text` (has text) can't be dropped by name.
+    const NOISE_WORDS = ['particle','mote','dust','spark','bokeh','snow',
+                         'ember','fleck','speck','twinkle'];
+
+    function noiseMatch(el) {
+        const cls = (el.getAttribute('class') || '').toLowerCase();
+        return NOISE_WORDS.some(w => cls.includes(w));
+    }
+
+    // A leaf (no real element children), holding no text, ≤12px in both dims.
+    function isTinyTextlessLeaf(el) {
+        for (const c of el.children) {
+            if (!SKIP_TAGS.has(c.tagName) && c.tagName !== 'BR') return false;
+        }
+        for (const n of el.childNodes) {
+            if (n.nodeType === 3 && n.textContent.trim()) return false;
+        }
+        const r = el.getBoundingClientRect();
+        if (r.width < 1 || r.height < 1) return false;
+        return Math.max(r.width, r.height) <= 12;
+    }
+
+    // Returns {set, count, keyword} if `parent`'s direct children hold a
+    // droppable swarm, else null. A swarm = the largest group of near-equal-size
+    // (delta ≤2px) tiny-textless-leaf children, dropped when count≥12, or count≥8
+    // with a keyword match on the parent or a group member.
+    function decorativeSwarmChildren(parent) {
+        const cands = [];
+        for (const c of parent.children) {
+            if (SKIP_TAGS.has(c.tagName) || c.tagName === 'BR') continue;
+            if (isTinyTextlessLeaf(c)) cands.push(c);
+        }
+        if (cands.length < 8) return null;
+        let best = [];
+        for (const seed of cands) {
+            const sr = seed.getBoundingClientRect();
+            const grp = cands.filter(c => {
+                const r = c.getBoundingClientRect();
+                return Math.abs(r.width - sr.width) <= 2 && Math.abs(r.height - sr.height) <= 2;
+            });
+            if (grp.length > best.length) best = grp;
+        }
+        if (best.length < 8) return null;
+        const keyword = noiseMatch(parent) || best.some(noiseMatch);
+        const drop = best.length >= 12 || (best.length >= 8 && keyword);
+        if (!drop) return null;
+        return { set: new Set(best), count: best.length, keyword };
+    }
+    // ───────────────────────────────────────────────────────────────────────
 
     function visit(el, parentUid, parentVisualUid, brightnessMul = 1) {
         if (SKIP_TAGS.has(el.tagName)) return;
@@ -569,7 +624,19 @@ _EXTRACT_JS = r"""
             if (!anyBlock) return;
         }
 
+        const swarm = decorativeSwarmChildren(el);
+        if (swarm) {
+            const label = el.getAttribute('class')
+                ? '.' + el.getAttribute('class').split(/\s+/)[0]
+                : '<' + tag + '>';
+            const how = swarm.keyword
+                ? 'structural+keyword'
+                : 'structural-only, N=' + swarm.count;
+            skipWarnings.push('skipped decorative swarm: ' + swarm.count
+                + ' leaves under ' + label + ' (match: ' + how + ')');
+        }
         for (const child of el.children) {
+            if (swarm && swarm.set.has(child)) continue;
             visit(child, parentUid, visualParent, effectiveBrightness);
         }
     }
@@ -586,6 +653,7 @@ _EXTRACT_JS = r"""
 
     return {
         elements: out,
+        warnings: skipWarnings,
         frameWidth: Math.round(frameRect.width),
         frameHeight: Math.round(frameRect.height),
         bodyBg: bodyCS.backgroundColor,
@@ -1553,6 +1621,7 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
 
         result = page.evaluate(_EXTRACT_JS)
         raw_elements = result["elements"]
+        warnings.extend(result.get("warnings", []))
         frame_w = result["frameWidth"]
         frame_h = result["frameHeight"]
         body_bg = _color_to_rgba(result.get("bodyBg", ""))
