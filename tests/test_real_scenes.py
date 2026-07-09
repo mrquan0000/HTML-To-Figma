@@ -43,10 +43,34 @@ def test_real_content_survives_in_scene_9(tmp_path):
     spec = _spec_for("scene_9", tmp_path)
     # Only the particle SWARM should be removed — scene_9's real content layers
     # (focal-wrapper, question-text, ambient overlays) must all still be emitted.
-    # (scene_9 has no NATIVE text: its heading is gradient-clip text that
-    # rasterizes by CLAUDE.md's documented design, so we assert real *content*
-    # layers survive, not text specifically.)
+    # (Historically scene_9 had no NATIVE text: its heading used gradient-clip
+    # styling that rasterized by design. Since the maximize-native-minimize-
+    # raster change (topic #2), a simple linear/radial gradient-clip heading
+    # goes native instead — see test_real_scene_gradient_text_becomes_native
+    # below — so this check still asserts real *content* layers survive by
+    # name, without assuming raster-only.)
     names = " ".join(e.get("name", "").lower() for e in spec["elements"])
     assert "focal-wrapper" in names or "question-text" in names, \
         f"scene_9 real content must survive, got names: {names}"
     assert len(spec["elements"]) >= 5, "scene_9 should retain its real content layers"
+
+
+def test_real_scene_gains_native_blur_or_glow_effects(tmp_path):
+    # scene_9 has several filter:blur()/drop-shadow() decorative elements that
+    # used to rasterize — after the maximize-native change they should carry
+    # native LAYER_BLUR/DROP_SHADOW effects instead.
+    spec = _spec_for("scene_9", tmp_path)
+    effect_types = {fx.get("type") for e in spec["elements"] for fx in e.get("effects", [])}
+    assert effect_types & {"LAYER_BLUR", "DROP_SHADOW"}, \
+        f"scene_9: expected at least one native LAYER_BLUR/DROP_SHADOW effect, got {effect_types}"
+
+
+def test_real_scene_gradient_text_becomes_native(tmp_path):
+    # scene_9's heading uses background-clip:text with a gradient — this used
+    # to force it to raster; it should now survive as an editable native text
+    # element with an approximated solid fill, plus a warning documenting the
+    # trade-off.
+    spec = _spec_for("scene_9", tmp_path)
+    texts = [e for e in spec["elements"] if e["type"] == "text"]
+    assert texts, "scene_9's gradient-clip heading should now be a native text element"
+    assert any("approximated gradient text fill" in w for w in spec["warnings"])
