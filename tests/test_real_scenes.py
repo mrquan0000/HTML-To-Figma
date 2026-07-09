@@ -1,5 +1,10 @@
 """Slower integration check against real particle-heavy scenes in input/.
-Skips gracefully if a scene file isn't present."""
+
+These are DEV-TIME checks: input/ holds transient scene files (gitignored, wiped
+by utils/clean_project.py), so on a fresh clone or CI without those files each
+case SKIPS rather than fails. Durable structural coverage lives in the synthetic
+fixtures of test_decorative_noise.py; these add "works on real production HTML"
+confidence while the scene library is present during active development."""
 import sys
 from pathlib import Path
 

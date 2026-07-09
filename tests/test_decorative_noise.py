@@ -45,9 +45,10 @@ def test_swarm_drop_emits_warning(tmp_path):
 
 
 # --- Real UI must be KEPT: small repeated leaves below the keyword threshold. ---
-# 5-star rating + 6 carousel dots. Same 10px size → they group together (N=11),
-# but there's NO keyword match (star/dot are NOT in the vocab) so the drop needs
-# N≥12 — 11 is kept.
+# 5-star rating and 6 carousel dots, each in its OWN container (.rating / .dots).
+# Detection is per-parent, so each group is evaluated independently (5 and 6) —
+# both below the 8 candidate floor, so nothing is dropped. (Even if they shared a
+# parent: N=11 with no keyword still needs N≥12 to drop. star/dot are not vocab.)
 _STARS = "\n".join(f'<i class="star" style="left:{i*12}px"></i>' for i in range(5))
 _DOTS = "\n".join(f'<i class="dot" style="left:{i*12}px"></i>' for i in range(6))
 REAL_UI_HTML = f"""<!doctype html><html><head><style>
