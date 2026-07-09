@@ -1,7 +1,10 @@
 from conftest import run_extract
 
 # 20 tiny textless particle leaves inside a .particles container, plus one real
-# heading whose class name (glowing-text) contains "glow" — must survive.
+# heading (.glowing-text) — a real-world content class that must survive. It is
+# never a candidate because it has direct text, so the swarm detector can't touch
+# it. (A dedicated "keyword-named but text-bearing → kept" guard lives in the
+# threshold tests.)
 _PARTICLES = "\n".join(
     f'<div class="particle" style="top:{i*4}%;left:{(i*7)%100}%"></div>'
     for i in range(20)
