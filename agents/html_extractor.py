@@ -81,6 +81,7 @@ TextRun:
 from __future__ import annotations
 
 import argparse
+import colorsys
 import json
 import math
 import os
@@ -359,7 +360,16 @@ _EXTRACT_JS = r"""
         return stripped === '';
     }
 
-    function classify(el, cs, hasDirectText, hasElemChildren) {
+    // True when `backgroundImage` is EXACTLY one linear-gradient(...) or
+    // radial-gradient(...) call (no stacked layers, no conic/repeating) —
+    // mirrors the Python-side `_parse_gradient()` regex exactly so
+    // classify()'s native/raster decision never disagrees with what the
+    // color-blend step can actually parse.
+    function isSimpleGradientBg(backgroundImage) {
+        return /^(linear|radial)-gradient\(.+\)$/s.test((backgroundImage || '').trim());
+    }
+
+    function classify(el, cs, hasDirectText, hasElemChildren, w, h) {
         if (el.tagName === 'svg')                            return 'raster';
         // <img> pixels can't be drawn natively → rasterize the rendered box.
         if (el.tagName === 'IMG')                            return 'raster';
@@ -381,11 +391,31 @@ _EXTRACT_JS = r"""
         if (cs.clipPath && cs.clipPath !== 'none')           return 'raster';
         if (cs.mask && cs.mask !== 'none')                   return 'raster';
         if (cs.backgroundImage.includes('url('))             return 'raster';
-        // background-clip:text + transparent fill → gradient text, must raster
+        // background-clip:text + transparent fill → gradient text. A single
+        // simple linear/radial gradient stays NATIVE — the text keeps its
+        // runs/editability and gets ONE approximated solid color (see
+        // _blend_gradient_to_solid in Python). Conic/multi-layer/repeating
+        // gradients (isSimpleGradientBg fails) still rasterize.
         if ((cs.webkitTextFillColor === 'rgba(0, 0, 0, 0)' || cs.webkitTextFillColor === 'transparent')
-            && cs.backgroundImage.includes('gradient'))      return 'raster';
-        // Pure leaf with gradient bg (no element children) → raster whole element
-        if (cs.backgroundImage.includes('gradient') && !hasElemChildren) return 'raster';
+            && cs.backgroundImage.includes('gradient')
+            && !isSimpleGradientBg(cs.backgroundImage))      return 'raster';
+        // Pure leaf with gradient bg (no element children): a full-frame
+        // background (>=95% of viewport in both dimensions — same threshold
+        // spirit as the Python-side _is_full_frame_bg) stays raster, so an
+        // atmospheric/video-like background keeps full fidelity. A smaller
+        // simple linear/radial gradient shape goes NATIVE with one
+        // approximated solid fill instead. Conic/multi-layer gradients still
+        // rasterize regardless of size.
+        if (cs.backgroundImage.includes('gradient') && !hasElemChildren) {
+            // Compare against frameRect (the body's actual rendered box), NOT
+            // window.innerWidth/innerHeight (the fixed probe-viewport size) —
+            // frameRect is exactly what becomes frameWidth/frameHeight, the
+            // same reference the Python-side _is_full_frame_bg compares
+            // against. Using the raw viewport instead would misjudge on any
+            // page whose body height differs from the arbitrary probe height.
+            const isFullFrameBg = w >= frameRect.width * 0.95 && h >= frameRect.height * 0.95;
+            if (!isSimpleGradientBg(cs.backgroundImage) || isFullFrameBg) return 'raster';
+        }
         // 3d transforms → raster, UNLESS the matrix3d is only a perspective-divisor
         // artifact with no real 3D rotation/scale/translation. An animation
         // declared with `perspective(N) translateX(...) scale(...)` resolves its
@@ -631,7 +661,7 @@ _EXTRACT_JS = r"""
             const w = Math.round(r.w);
             const h = Math.round(r.h);
 
-            const klass = classify(el, cs, hasDirectText, hasElementChildren);
+            const klass = classify(el, cs, hasDirectText, hasElementChildren, w, h);
             // Native gradient-bg container with children: needs a "bg-only" PNG so
             // children stay editable but the gradient still renders behind them.
             const isGradientContainer = klass === 'native'
@@ -1212,6 +1242,25 @@ def _parse_gradient(bg_image: str) -> dict | None:
     return None
 
 
+def _blend_gradient_to_solid(stops: list[dict]) -> dict:
+    """Approximate a multi-stop gradient as ONE solid color: 70% the darkest
+    stop + 30% the lightest stop (by HSL lightness), so the result reads as a
+    base tone a user can add a lighter highlight to when editing. With only 2
+    lightness-distinct stops this is exact; with 3+ stops the two
+    lightness-extreme stops are used and any middle stops are ignored."""
+    def lightness(stop):
+        c = stop["color"]
+        return colorsys.rgb_to_hls(c["r"], c["g"], c["b"])[1]
+    darkest = min(stops, key=lightness)["color"]
+    lightest = max(stops, key=lightness)["color"]
+    return {
+        "r": round(darkest["r"] * 0.7 + lightest["r"] * 0.3, 4),
+        "g": round(darkest["g"] * 0.7 + lightest["g"] * 0.3, 4),
+        "b": round(darkest["b"] * 0.7 + lightest["b"] * 0.3, 4),
+        "a": round(darkest["a"] * 0.7 + lightest["a"] * 0.3, 4),
+    }
+
+
 def _parse_shadows(shadow_str: str) -> list[dict]:
     """Parse `box-shadow` value (can be multi). Returns list of Effect dicts."""
     if not shadow_str or shadow_str == "none":
@@ -1305,7 +1354,7 @@ def _first_font_family(ff: str) -> str:
 # Build spec from raw element data
 # ═════════════════════════════════════════════════════════════════════════════
 
-def _build_text_runs(raw_runs: list[dict]) -> list[dict]:
+def _build_text_runs(raw_runs: list[dict], warnings: list[str], uid: str) -> list[dict]:
     """Convert JS-extracted runs into spec TextRun list."""
     out = []
     for r in raw_runs or []:
@@ -1315,7 +1364,9 @@ def _build_text_runs(raw_runs: list[dict]) -> list[dict]:
         text = r.get("text", "")
         if not text:
             continue
-        # Detect background-clip:text (gradient text fill)
+        # Detect background-clip:text (gradient text fill) — classify() only
+        # let a text element with a SIMPLE linear/radial gradient reach here
+        # natively; approximate it to one solid color (editable text kept).
         bg = r.get("backgroundImage", "")
         text_fill_transparent = r.get("webkitTextFillColor", "") in ("rgba(0, 0, 0, 0)", "transparent")
         bg_clip = r.get("backgroundClip", "")
@@ -1323,7 +1374,13 @@ def _build_text_runs(raw_runs: list[dict]) -> list[dict]:
         if text_fill_transparent and "gradient" in bg and bg_clip == "text":
             grad = _parse_gradient(bg)
             if grad:
-                fills = [grad]
+                solid = _blend_gradient_to_solid(grad["stops"])
+                fills = [{"type": "SOLID", "color": solid}]
+                warnings.append(
+                    f"approximated gradient text fill on {uid} as solid "
+                    f"rgb({round(solid['r']*255)}, {round(solid['g']*255)}, {round(solid['b']*255)}) "
+                    f"(native, was raster; darker-biased 70/30 blend of gradient stops)"
+                )
         if fills is None:
             # None means genuinely transparent/invalid CSS color (e.g. rim-only
             # text with color:transparent) — leave fills empty rather than
@@ -1358,22 +1415,41 @@ def _decoration(s: str) -> str:
     return "NONE"
 
 
-def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: list[dict], assets_dir: str) -> None:
+def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: list[dict], assets_dir: str, warnings: list[str]) -> None:
     """Convert one raw native element → 0, 1, or many spec elements."""
     cs = raw["cssText"]
     x, y, w, h = raw["x"], raw["y"], raw["w"], raw["h"]
-    runs = _build_text_runs(raw.get("runs")) if raw.get("runs") else None
+    runs = _build_text_runs(raw.get("runs"), warnings, raw["uid"]) if raw.get("runs") else None
     has_text = bool(runs)
     el_id = uid_to_id[raw["uid"]]
     parent_id = uid_to_id.get(raw.get("parent_uid"))
 
     # ─── Fills ──────────────────────────────────────────────────────────────
-    # Gradient bg is rasterized into a bg-only PNG child (handled below);
-    # at this level, only SOLID bg color reaches `fills`.
+    # Gradient bg on a CONTAINER (with children) is rasterized into a bg-only
+    # PNG child (handled below); at this level, only SOLID bg color reaches
+    # `fills`. A gradient on a LEAF (no children) was already approved for
+    # native by classify() (isSimpleGradientBg + not full-frame) —
+    # approximate it to one solid color instead of a PNG, trading exact
+    # fidelity for an editable native fill. EXCEPTION: a gradient-clip-text
+    # leaf (direct text + transparent text-fill-color) uses its gradient only
+    # to color the glyphs via _build_text_runs below — it must NOT ALSO get a
+    # solid background shape painted behind the (invisible-box) text.
     fills = []
     bg_color = _color_to_rgba(cs.get("backgroundColor", ""))
     has_gradient_bg = bool(raw.get("_bg_asset_filename"))
-    if not has_gradient_bg and bg_color:
+    bg_image = cs.get("backgroundImage", "")
+    is_gradient_clip_text = bool(raw.get("runs")) and cs.get("webkitTextFillColor", "") in ("rgba(0, 0, 0, 0)", "transparent")
+    if not has_gradient_bg and not raw.get("hasElementChildren") and not is_gradient_clip_text and "gradient" in bg_image:
+        grad = _parse_gradient(bg_image)
+        if grad:
+            solid = _blend_gradient_to_solid(grad["stops"])
+            fills.append({"type": "SOLID", "color": solid})
+            warnings.append(
+                f"approximated gradient fill on {raw['uid']} as solid "
+                f"rgb({round(solid['r']*255)}, {round(solid['g']*255)}, {round(solid['b']*255)}) "
+                f"(native, was raster; darker-biased 70/30 blend of gradient stops)"
+            )
+    elif not has_gradient_bg and bg_color:
         fills.append({"type": "SOLID", "color": bg_color})
 
     # ─── Strokes (per-side borders) ─────────────────────────────────────────
@@ -2170,7 +2246,7 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
             rel_path = str(Path(assets_dir) / asset_name)
             _emit_raster_element(raw, rel_path, uid_to_id, elements_spec)
         else:
-            _emit_native_element(raw, uid_to_id, elements_spec, assets_dir)
+            _emit_native_element(raw, uid_to_id, elements_spec, assets_dir, warnings)
 
     # Pass 3: promote parent_id to nearest emitted ancestor (skip layout-only divs)
     raw_parent = {r["uid"]: r.get("parent_uid") for r in raw_elements}
