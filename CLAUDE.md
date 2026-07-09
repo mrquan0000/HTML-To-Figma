@@ -194,12 +194,13 @@ Elements **đã sắp xếp sẵn** theo effective z-index — builder process t
 
 | Tính năng | Trạng thái |
 |---|---|
-| Gradient fill native | ✗ Không hỗ trợ → rasterize toàn bộ |
+| Gradient fill native | ✗ Không hỗ trợ thật (xác nhận qua schema `set_fills`: chỉ nhận solid hex). Gradient **linear/radial đơn giản** trên shape/text nhỏ hơn 95% frame → xấp xỉ 1 màu solid (blend 70% stop đậm + 30% stop sáng theo lightness), giữ native/editable, có warning. Gradient phủ ≥95% frame, conic, hoặc nhiều lớp background chồng nhau → vẫn raster. |
 | Image fill native | ✗ → `import_image` tạo image node |
 | Per-run text styling (inline bold span, color span) | ✗ → concat thành 1 text node, dùng style của run đầu, warning |
-| Conic gradient, clip-path, mask, CSS filter | → raster fallback |
+| `filter: blur()` / `drop-shadow()` (kể cả kết hợp) | ✓ Native — map sang effect `LAYER_BLUR`/`DROP_SHADOW` (áp dụng cho leaf lẫn container). Filter khác (hue-rotate, contrast, kết hợp với thứ khác ngoài blur/drop-shadow, ...) vẫn raster. |
+| Conic gradient, clip-path, mask | → raster fallback |
 | SVG (vector) | → raster PNG, không editable trong Figma |
-| Background-clip: text + transparent fill (gradient text) | → raster |
+| Background-clip: text + transparent fill (gradient text) | Gradient linear/radial đơn giản → native (xấp xỉ màu solid, xem hàng Gradient fill native ở trên). Conic/nhiều lớp → raster. |
 
 Khi extractor gặp các case này, nó tự fallback raster và ghi warning vào spec.
 
