@@ -140,11 +140,35 @@ candidate new keywords), and the size range, e.g.:
 potential swarm kept for review: 9 leaves under .orbit-field (classes: orb, orbit; sizes 6–10px; kept: no keyword & N<12)
 ```
 
-Workflow: after running on many scenes, `jq '.noise_review' output/*_spec.json` gathers
-every candidate + its class names in one place, so new particle types / keywords can be
-folded into `NOISE_WORDS` (or the size thresholds widened) deliberately. A dropped swarm
-is NEVER also listed for review. Real scenes whose swarms all match known keywords
-produce an empty `noise_review` (no false review-noise) — verified on scene_9/20/24.
+Each `noise_review` entry is a STRUCTURED dict — `{parent, count, classes, size_min,
+size_max, message}` — so tooling can aggregate it cleanly (the `message` is for
+eyeballing a single spec). A dropped swarm is NEVER also listed for review. Real scenes
+whose swarms all match known keywords produce an empty `noise_review` (no false
+review-noise) — verified on scene_9/20/24.
+
+### Closed loop: review → exclude (added 2026-07-09)
+
+A log nobody acts on is useless, so the discovery feeds back into the detector as DATA,
+not code edits:
+
+- **Keyword list is externalized.** The safe CORE (`particle, mote, dust, spark, bokeh,
+  snow, ember, fleck, speck, twinkle`) stays hardcoded in `_EXTRACT_JS`. Extra
+  user-curated tokens live in `config/noise_keywords.txt` (one per line, `#` comments).
+  `load_noise_keywords()` reads that file (path overridable via `NOISE_KEYWORDS_FILE`
+  env for tests) and the Python caller passes the list into `_EXTRACT_JS` as an argument
+  (`(extraNoiseWords) => …`), where it's appended to the core. The file only ADDS —
+  a bad edit can never weaken the core. `utils/render_html.py` passes the same list so
+  the QC render's frame geometry stays consistent with the build.
+- **Aggregator.** `utils/review_noise.py` scans `output/*_spec.json`, tallies the
+  `classes` tokens seen across all `noise_review` entries, and ranks them by how many
+  groups/scenes they appear in (with observed size range). The user reviews the ranking
+  and adds confirmed tokens to `config/noise_keywords.txt`. **Nothing is auto-added** —
+  a wrong keyword (e.g. `dot`, `star`) would drop real UI, so a human always decides.
+
+The full loop: run extractor → `noise_review` populated → `python utils/review_noise.py`
+ranks candidates → user adds confirmed tokens to the config file → next run drops them
+(promoted from "review" to "drop"). Covered by tests: structured entries, config token
+promotes a reviewed swarm to a dropped one, aggregator tally/robustness.
 
 ## Verification
 
