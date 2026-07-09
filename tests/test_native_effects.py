@@ -122,3 +122,26 @@ def test_blur_on_text_leaf_attaches_to_text_not_phantom_shape(tmp_path):
     texts = [e for e in spec["elements"] if e["type"] == "text"]
     assert len(texts) == 1
     assert any(e["type"] == "LAYER_BLUR" for e in texts[0].get("effects", []))
+
+
+# A MIXED node: direct text ("Glow ") PLUS an element child (<span> icon),
+# with the filter on the shared parent. The parent becomes a native FRAME
+# carrying the effect; the child text must NOT also carry it (that would
+# double the blur when Figma composites the already-blurred frame).
+MIXED_TEXT_AND_ELEMENT_HTML = """<!doctype html><html><head><style>
+  body { margin:0; width:400px; height:200px; background:#111; }
+  .row { position:absolute; top:60px; left:40px; color:#fff; font-size:24px;
+         filter: blur(3px); }
+  .row span { color:#ffcc00; }
+</style></head><body><div class="row">Glow <span>*</span></div></body></html>"""
+
+
+def test_mixed_text_and_element_child_gets_effect_once_on_frame(tmp_path):
+    spec = run_extract(MIXED_TEXT_AND_ELEMENT_HTML, tmp_path)
+    frames = [e for e in spec["elements"] if e["type"] == "frame"]
+    assert len(frames) == 1
+    assert any(fx["type"] == "LAYER_BLUR" for fx in frames[0].get("effects", []))
+    texts = [e for e in spec["elements"] if e["type"] == "text"]
+    assert len(texts) == 1
+    assert texts[0].get("effects", []) == [], \
+        f"text child must NOT also carry the parent's filter-effect (double blur), got {texts[0].get('effects')}"

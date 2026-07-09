@@ -1582,12 +1582,13 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
 
         # Build name from first run text
         preview = (runs[0]["text"] if runs else "").strip()[:24].replace("\n", " ")
-        # filter:blur()/drop-shadow() (glow/soft shadow) → native LAYER_BLUR/
-        # DROP_SHADOW on the text node (box-shadow stays on the emitted shape,
-        # if any). Lets blurred/glowing text stay editable instead of being
-        # rasterized. (Shape-level effects skip this for a pure text leaf —
-        # see the `is_pure_text_leaf` guard above — so it isn't duplicated.)
-        text_filter_str = cs.get("filter", "")
+        # filter:blur()/drop-shadow() (glow/soft shadow) on this text node.
+        # Only apply here when this text IS the whole leaf (no element
+        # children) — a mixed node (text + element children sharing this
+        # DOM node's own filter) already gets the SAME filter attached to
+        # the emitted FRAME (see is_pure_text_leaf in the Effects block
+        # above), so re-applying it here would double it.
+        text_filter_str = cs.get("filter", "") if not raw.get("hasElementChildren") else ""
         text_effects = _parse_filter_drop_shadows(text_filter_str)
         text_filter_blur_radius = _parse_filter_blur(text_filter_str)
         if text_filter_blur_radius is not None:
