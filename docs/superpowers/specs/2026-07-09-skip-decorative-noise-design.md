@@ -77,11 +77,16 @@ For each element E, examine its direct-child group:
    swarm inside it.
 
 **Noise vocabulary (booster only — never fires without structural match):**
-`particle, mote, dust, spark, star, dot, bokeh, snow, ember, fleck, speck, twinkle`.
-Matched case-insensitively as a whole hyphen/space-delimited class token or class-name
-substring on E or the group's children. (`grain`/`smoke` deliberately excluded — they
-name Tier-2 single-element overlays we KEEP, and would never match the swarm structure
-anyway; leaving them out avoids confusion.)
+`particle, mote, dust, spark, bokeh, snow, ember, fleck, speck, twinkle`.
+Matched case-insensitively as a class-name substring on E or the group's children.
+
+Deliberately EXCLUDED and why:
+- `star`, `dot` — too collision-prone with real UI (star-ratings, carousel/stepper
+  dot indicators). Including them would drop an 8-dot carousel (`N≥8 + keyword`). A
+  genuinely decorative starfield/dotfield of ≥12 tiny leaves is still caught by the
+  structural-only path (`N≥12`), so nothing decorative is lost by omitting them.
+- `grain`, `smoke` — name Tier-2 single-element overlays we KEEP; they'd never match
+  the swarm structure anyway.
 
 Because keyword never fires alone and every candidate must be textless, `glowing-text`
 (has text) and any keyword-named-but-real element cannot be dropped by keyword alone.
