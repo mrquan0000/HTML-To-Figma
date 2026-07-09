@@ -118,6 +118,34 @@ skipped decorative swarm: 14 leaves under <div> (match: structural-only, N=14)
 This is insurance against a false-positive: if a real UI group ever gets dropped, the
 user sees exactly what and why, rather than an element silently vanishing.
 
+## noise_review — discovery log for unknown noise (added 2026-07-09)
+
+The detector is seeded from only a handful of sample particle types, so its keyword
+list and even its structural bounds may be incomplete. To grow the ruleset from real
+HTML, the extractor ALSO logs *near-misses* — groups that structurally resemble a
+swarm but were NOT dropped — into a separate `spec["noise_review"]` list (kept out of
+`warnings[]` so "what we did" stays distinct from "what to review").
+
+A group is flagged for review when it is swarm-SHAPED (≥8 near-equal-size, textless,
+leaf children) but was not dropped, under a WIDER net than the drop rule:
+- drop candidates: max dimension ≤ 12px; review candidates: ≤ 24px (so "hạt hơi to
+  hơn mẫu" — particles slightly larger than the samples — also surface).
+- reaching review means: no keyword match AND N < 12, OR the group only forms in the
+  12–24px band.
+
+Each entry captures the parent label, the group's distinct **class tokens** (the
+candidate new keywords), and the size range, e.g.:
+
+```
+potential swarm kept for review: 9 leaves under .orbit-field (classes: orb, orbit; sizes 6–10px; kept: no keyword & N<12)
+```
+
+Workflow: after running on many scenes, `jq '.noise_review' output/*_spec.json` gathers
+every candidate + its class names in one place, so new particle types / keywords can be
+folded into `NOISE_WORDS` (or the size thresholds widened) deliberately. A dropped swarm
+is NEVER also listed for review. Real scenes whose swarms all match known keywords
+produce an empty `noise_review` (no false review-noise) — verified on scene_9/20/24.
+
 ## Verification
 
 1. **Swarm removal:** re-run `html_extractor.py` on particle-heavy scenes
