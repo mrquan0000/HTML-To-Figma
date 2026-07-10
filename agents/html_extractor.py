@@ -223,6 +223,45 @@ _EXTRACT_JS = r"""
         } catch (e) { return null; }
     }
 
+    // Widest rendered line of an element's text, in CSS px. Groups text client
+    // rects into visual lines (by top) and returns the max line width. Used to
+    // give a WRAPPING multi-line text box just enough width slack that Figma's
+    // (slightly wider) text shaping wraps at the SAME points as Chrome — without
+    // this, a heading that fills ~98% of its box on one line re-wraps to an extra
+    // line in Figma and overflows a fixed-height box onto content below.
+    function maxLineWidth(el) {
+        try {
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const rects = Array.from(range.getClientRects()).filter(r => r.width > 0 && r.height > 0);
+            if (!rects.length) return 0;
+            const lines = [];
+            for (const r of rects) {
+                let ln = lines.find(l => Math.abs(l.top - r.top) < 3);
+                if (!ln) { lines.push({top: r.top, left: r.left, right: r.right}); }
+                else { ln.left = Math.min(ln.left, r.left); ln.right = Math.max(ln.right, r.right); }
+            }
+            return Math.round(Math.max(...lines.map(l => l.right - l.left)));
+        } catch (e) { return 0; }
+    }
+
+    // Number of VISUAL lines an element's text renders on (grouped by top). Lets
+    // Python tell HARD-break-only text (rendered lines == '\n' count + 1, where
+    // widening the box can never merge lines) from soft-wrapped text (where it
+    // could) — the former can be widened generously to survive a Figma font swap.
+    function renderedLineCount(el) {
+        try {
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const rects = Array.from(range.getClientRects()).filter(r => r.width > 0 && r.height > 0);
+            const tops = [];
+            for (const r of rects) {
+                if (!tops.some(t => Math.abs(t - r.top) < 3)) tops.push(r.top);
+            }
+            return tops.length;
+        } catch (e) { return 0; }
+    }
+
     // Detects whether an element's rendered text occupies exactly ONE visual
     // line (all fragments share the same top position) — guards the
     // squeezed-line-height ink-rect fix below so it never touches genuinely
@@ -236,6 +275,47 @@ _EXTRACT_JS = r"""
             const top0 = rects[0].top;
             return rects.every(r => Math.abs(r.top - top0) < 2);
         } catch (e) { return false; }
+    }
+
+    // Client rects of ONLY an element's DIRECT text nodes (not descendant
+    // elements). A badge/pill/CTA frame carries a vertically-centered icon/dot
+    // child whose rect sits at a DIFFERENT top than the label baseline — using
+    // whole-contents rects (isSingleLineRange / textBoxOffset) would then wrongly
+    // read the label as "multi-line" and mis-measure its box. Measuring the label
+    // text directly avoids the icon entirely.
+    function directTextClientRects(el) {
+        const rects = [];
+        for (const node of el.childNodes) {
+            if (node.nodeType !== 3 || !node.textContent.trim()) continue;
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            for (const r of range.getClientRects()) {
+                if (r.width > 0 && r.height > 0) rects.push(r);
+            }
+        }
+        return rects;
+    }
+
+    // True when an element's DIRECT text renders on exactly one visual line.
+    function isDirectTextSingleLine(el) {
+        const rects = directTextClientRects(el);
+        if (rects.length === 0) return false;
+        const top0 = rects[0].top;
+        return rects.every(r => Math.abs(r.top - top0) < 2);
+    }
+
+    // Bbox of an element's DIRECT text only, as an offset from its border box
+    // (like textBoxOffset but excluding icon/dot children). null if no direct text.
+    function directTextRect(el, elX, elY) {
+        const rects = directTextClientRects(el);
+        if (rects.length === 0) return null;
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        for (const r of rects) {
+            x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top);
+            x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom);
+        }
+        return {dx: (x0 - frameRect.left) - elX, dy: (y0 - frameRect.top) - elY,
+                w: Math.round(x1 - x0), h: Math.round(y1 - y0)};
     }
 
     // A giant decorative numeral/label with CSS line-height squeezed much
@@ -434,6 +514,19 @@ _EXTRACT_JS = r"""
         return false;
     }
 
+    // True for a RADIAL gradient whose falloff reaches full transparency (a
+    // fully-transparent stop: the `transparent` keyword or rgba(...,0)). That is a
+    // glow / spotlight / vignette whose entire visual is the soft alpha fade —
+    // approximating it to an opaque solid produces a hard-edged filled ellipse, so
+    // it must stay raster. Scoped to radial only: a LINEAR transparent-edge fade
+    // (underline/bar with opaque middle) is fine as an approximated solid.
+    function isRadialFadeToTransparent(backgroundImage) {
+        const s = (backgroundImage || '');
+        if (!s.includes('radial-gradient')) return false;
+        return /(^|[\s,(])transparent([\s,)]|$)/.test(s)
+            || /rgba\([^)]*,\s*0(\.0+)?\s*\)/.test(s);
+    }
+
     function classify(el, cs, hasDirectText, hasElemChildren, w, h) {
         if (el.tagName === 'svg')                            return 'raster';
         // <img> pixels can't be drawn natively → rasterize the rendered box.
@@ -480,6 +573,8 @@ _EXTRACT_JS = r"""
             // page whose body height differs from the arbitrary probe height.
             const isFullFrameBg = w >= frameRect.width * 0.95 && h >= frameRect.height * 0.95;
             if (!isSimpleGradientBg(cs.backgroundImage) || isFullFrameBg) return 'raster';
+            // Radial glow/vignette fading to transparent → keep the soft falloff.
+            if (isRadialFadeToTransparent(cs.backgroundImage)) return 'raster';
         }
         // 3d transforms → raster, UNLESS the matrix3d is only a perspective-divisor
         // artifact with no real 3D rotation/scale/translation. An animation
@@ -801,6 +896,11 @@ _EXTRACT_JS = r"""
                 opacity: parseFloat(cs.opacity),
                 isGradientContainer: isGradientContainer,
                 textRect: hasDirectText ? textBoxOffset(el, x, y) : null,
+                maxLineWidth: hasDirectText ? maxLineWidth(el) : 0,
+                renderedLineCount: hasDirectText ? renderedLineCount(el) : 0,
+                textSingleLine: hasDirectText ? isSingleLineRange(el) : false,
+                directTextRect: hasDirectText ? directTextRect(el, x, y) : null,
+                directTextSingleLine: hasDirectText ? isDirectTextSingleLine(el) : false,
                 inkRectOverride: isSqueezed ? trueInkRect(el, x, y, r) : null,
                 isCanvas: el.hasAttribute('data-detected-canvas'),
             };
@@ -1509,7 +1609,7 @@ def _decoration(s: str) -> str:
     return "NONE"
 
 
-def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: list[dict], assets_dir: str, warnings: list[str]) -> None:
+def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: list[dict], assets_dir: str, warnings: list[str], frame_width: int = 0) -> None:
     """Convert one raw native element → 0, 1, or many spec elements."""
     cs = raw["cssText"]
     x, y, w, h = raw["x"], raw["y"], raw["w"], raw["h"]
@@ -1827,11 +1927,28 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
         # (a) misread as multi-line (box height ≫ line height) and (b) resized to
         # the box width → the builder force-wraps the word (scene_22 .domino
         # "Understanding"/"Customers"). Replace with the text's ACTUAL rendered rect
-        # so line count + glyph position are faithful. Scoped to box+text without a
-        # frame (no element children) and unrotated (a rotated box's text AABB would
-        # fight the rotation node property).
-        tr = raw.get("textRect")
-        if not ink and tr and emit_shape and shape_type != "frame" and rotation == 0:
+        # so line count + glyph position are faithful.
+        #
+        # Also applies to a FRAME's `_t` label child: a pill/badge/CTA with its own
+        # padding + a non-text child (icon/dot) becomes a frame, and its label was
+        # inheriting the full padded box geometry → left/center-aligned text hugged
+        # the frame edge instead of sitting inside the padding (badge/CTA text
+        # overflow). Gated to SINGLE-LINE text (textSingleLine) so a frame whose
+        # direct text plus a text-bearing child span multiple lines isn't squashed
+        # to one glyph line. Unrotated only (a rotated box's text AABB would fight
+        # the rotation node property).
+        # For a FRAME's label, measure DIRECT text only (excludes a vertically
+        # centered icon/dot child that would otherwise poison the single-line check
+        # and the bbox); a plain box+text leaf has no children so textRect suffices.
+        is_frame_shape = emit_shape and shape_type == "frame"
+        if is_frame_shape:
+            tr = raw.get("directTextRect")
+            tr_single = raw.get("directTextSingleLine")
+        else:
+            tr = raw.get("textRect")
+            tr_single = raw.get("textSingleLine")
+        tr_frame_ok = is_frame_shape and tr_single
+        if not ink and tr and emit_shape and (not is_frame_shape or tr_frame_ok) and rotation == 0:
             text_elem["x"] = round(base["x"] + tr["dx"])
             text_elem["y"] = round(base["y"] + tr["dy"])
             text_elem["width"] = tr["w"]
@@ -1850,6 +1967,35 @@ def _emit_native_element(raw: dict, uid_to_id: dict[str, str], elements_out: lis
             text_elem["width"] += 6
         elif tr and abs(text_elem["width"] - tr["w"]) <= 2:
             text_elem["width"] += 6
+        # Multi-line WRAPPING text: Chrome and Figma shape the same font a few px
+        # apart, so a line that fills ~98% of its box in Chrome re-wraps to an extra
+        # line in Figma and overflows a fixed-height box onto content below
+        # (test_glm_5.2 heading: a hard-break line 548px wide in a 560px box wrapped
+        # to 3 lines in Figma). Widen the box to the widest rendered line + 5% so
+        # every authored/soft line keeps its slack. Bounded: widest_line <= box, so
+        # the target is <= box*1.05 — never enough to merge two lines into one.
+        # Skips the single-line overrides above (ink / tr), which have their own
+        # tight-fit cushion. Left-aligned headings hide the extra right-side width.
+        mlw = raw.get("maxLineWidth") or 0
+        _fs = next((r.get("font_size") for r in runs if r.get("font_size")), 14)
+        _lh_ref = line_height or _fs * 1.3
+        joined = "".join(r.get("text", "") for r in runs)
+        is_multiline_text = ("\n" in joined) or (text_elem["height"] > _lh_ref * 1.4)
+        if not ink and mlw and is_multiline_text:
+            # If every line break is a HARD break (rendered line count == '\n' count
+            # + 1), widening the box can NEVER merge two lines, so widen generously
+            # (1.3) to survive a Figma font substitution that renders the line much
+            # wider than Chrome did (test_glm_5.2's "Segoe UI"-stack heading → a
+            # wider Figma fallback; +5% wasn't enough, it re-wrapped to 3 lines and
+            # overlapped the subtitle). Soft-wrapped text keeps the tight +5% so it
+            # can't merge two lines into one. Capped to the frame's right edge.
+            line_count = raw.get("renderedLineCount") or 0
+            all_hard = line_count > 0 and line_count == joined.count("\n") + 1
+            widened = round(mlw * (1.3 if all_hard else 1.05))
+            if frame_width:
+                widened = min(widened, frame_width - int(base["x"]))
+            if widened > text_elem["width"]:
+                text_elem["width"] = widened
         elements_out.append(text_elem)
 
 
@@ -1927,6 +2073,17 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
         page.goto(f"file://{html_file}")
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(500)
+
+        # Capture the frame-root background gradient NOW — before design-canvas
+        # detection / viewport reflow / animation freeze, any of which can clear
+        # the computed background-image on html/body downstream (used for the
+        # full-frame BG-Gradient render further below). Read BOTH documentElement
+        # and body: a gradient on `html` propagates to the canvas and body reports
+        # 'none' (and vice-versa).
+        _early_frame_bg_img = page.evaluate(
+            "() => window.getComputedStyle(document.documentElement).backgroundImage"
+            " + ' ' + window.getComputedStyle(document.body).backgroundImage"
+        )
 
         if auto_width:
             # Detect a fixed design canvas first; else the largest px max-width.
@@ -2316,15 +2473,14 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
                 warnings.append(f"raster screenshot {uid_str} failed: {e}")
 
         # Bg-only PNGs for gradient containers: strip children + isolate, screenshot, restore.
-        # Skip "page-wrapper" containers (covering ~full frame) — those are the
-        # ambient scene background which user doesn't need; frame_bg solid color
-        # is sufficient for overlay-on-video use case.
+        # This ALSO covers full-frame "page-wrapper" gradient containers (a
+        # .slide-container holding the whole slide). Those were previously skipped
+        # (flat frame_bg deemed enough for overlay-on-video), but for slide /
+        # standalone use the gradient IS the intended background — dropping it to a
+        # flat solid is wrong (the gradient can't be recovered, whereas a rendered
+        # BG-Gradient layer the user doesn't want can just be deleted in Figma).
         grad_containers = [r for r in raw_elements if r.get("isGradientContainer")]
         for raw in grad_containers:
-            if raw["w"] >= frame_w * 0.95 and raw["h"] >= frame_h * 0.95:
-                # Mark so the spec emitter knows this is a transparent layout-only frame
-                raw["_skip_bg"] = True
-                continue
             uid_str = raw["uid"]
             try:
                 # Stash innerHTML and clear children (so the bg PNG has no foreground content)
@@ -2349,6 +2505,39 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
                     el.innerHTML = window.__savedHTML[uid];
                     delete window.__savedHTML[uid];
                 }""", uid_str)
+
+        # Full-frame body/root background gradient: the frame ROOT's OWN
+        # background is a gradient (not a child wrapper — those are handled by the
+        # grad_containers loop above). frame_bg only ever stores a solid, so
+        # render the gradient as a full-frame BG-Gradient PNG (emitted as the
+        # bottom-most element below). Hide every top-level child so the PNG holds
+        # only the background, then restore.
+        frame_bg_grad_png = None
+        # Read from BOTH body and documentElement: a gradient on `html` propagates
+        # to the page canvas and getComputedStyle(body) reports 'none'.
+        _root_bg_image = _early_frame_bg_img or ""
+        if "gradient" in _root_bg_image and "url(" not in _root_bg_image:
+            try:
+                page.evaluate("""() => {
+                    window.__bgHiddenKids = [];
+                    document.querySelectorAll('body > *').forEach(el => {
+                        window.__bgHiddenKids.push([el, el.style.visibility]);
+                        el.style.visibility = 'hidden';
+                    });
+                }""")
+                _fb_png = assets_path / "framebg_gradient.png"
+                # Clip the frame region (not the body element): the gradient may be
+                # painted on the propagated canvas, which a body-element screenshot
+                # would miss. body sits at the viewport origin (margin:0 slides).
+                page.screenshot(path=str(_fb_png), clip={"x": 0, "y": 0, "width": frame_w, "height": frame_h})
+                frame_bg_grad_png = _fb_png.name
+            except Exception as e:
+                warnings.append(f"frame-bg gradient screenshot failed: {e}")
+            finally:
+                page.evaluate("""() => {
+                    (window.__bgHiddenKids || []).forEach(([el, v]) => { el.style.visibility = v; });
+                    window.__bgHiddenKids = [];
+                }""")
 
         # Frame sizing (canvas-exact vs content-bbox+margin) — shared with
         # utils/render_html.py's QC reference via compute_frame_size(). Runs
@@ -2376,7 +2565,23 @@ def extract(html_path: str, viewport_width: int | None = None, assets_dir: str |
             rel_path = str(Path(assets_dir) / asset_name)
             _emit_raster_element(raw, rel_path, uid_to_id, elements_spec)
         else:
-            _emit_native_element(raw, uid_to_id, elements_spec, assets_dir, warnings)
+            _emit_native_element(raw, uid_to_id, elements_spec, assets_dir, warnings, adj_w)
+
+    # Full-frame body/root gradient (captured above): emit as a bottom-most,
+    # frame-filling BG-Gradient image. parent_id=None → top-level child of the
+    # main frame; sentinel z keeps it under everything (Pass 4 sorts siblings by z).
+    if frame_bg_grad_png:
+        elements_spec.append({
+            "id": "framebg",
+            "parent_id": None,
+            "type": "image",
+            "name": "[body/BG-Gradient]",
+            "x": 0, "y": 0, "width": adj_w, "height": adj_h,
+            "rotation": 0,
+            "opacity": 1.0,
+            "z": -10**9,
+            "image_path": str(Path(assets_dir) / frame_bg_grad_png),
+        })
 
     # Pass 3: promote parent_id to nearest emitted ancestor (skip layout-only divs)
     raw_parent = {r["uid"]: r.get("parent_uid") for r in raw_elements}

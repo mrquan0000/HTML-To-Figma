@@ -39,6 +39,81 @@ def test_full_frame_gradient_still_rasters(tmp_path):
     assert len(raster) == 1, "a full-frame (>=95%) gradient background must still raster"
 
 
+# A full-frame gradient WRAPPER that has element children (e.g. a .slide-container
+# holding the whole slide). Previously its gradient was dropped (skipped as a
+# "page-wrapper", leaving a flat solid frame_bg). For slide/standalone use the
+# gradient IS the intended background — it must render as a BG-Gradient PNG behind
+# the (still-native) children.
+FULLFRAME_GRADIENT_WRAPPER_HTML = """<!doctype html><html><head><style>
+  body { margin:0; width:800px; height:600px; }
+  .wrap { position:absolute; inset:0;
+          background: linear-gradient(180deg, #123456 0%, #abcdef 100%); }
+  .card { position:absolute; top:100px; left:100px; width:120px; height:80px; background:#f00; }
+</style></head><body><div class="wrap"><div class="card"></div></div></body></html>"""
+
+
+def test_fullframe_gradient_wrapper_with_children_renders_bg(tmp_path):
+    spec = run_extract(FULLFRAME_GRADIENT_WRAPPER_HTML, tmp_path)
+    bg = [e for e in spec["elements"] if e["type"] == "image" and "BG-Gradient" in e.get("name", "")]
+    assert bg, "full-frame gradient wrapper (with children) must emit a BG-Gradient PNG, not a flat solid"
+    # the native child must still be present (not swallowed into the raster)
+    assert any(e["type"] == "rectangle" for e in spec["elements"]), "child card must stay native"
+
+
+# The frame root's OWN background (body/root) is a gradient, with no wrapper div
+# holding it. frame_bg only ever stores a solid, so this gradient used to become
+# a flat color. It must render as a full-frame BG-Gradient PNG at the bottom.
+BODY_GRADIENT_HTML = """<!doctype html><html><head><style>
+  body { margin:0; width:800px; height:600px;
+         background: linear-gradient(135deg, #123456 0%, #abcdef 100%); }
+  .card { position:absolute; top:100px; left:100px; width:120px; height:80px; background:#f00; }
+</style></head><body><div class="card"></div></body></html>"""
+
+
+def test_body_gradient_renders_fullframe_bg(tmp_path):
+    spec = run_extract(BODY_GRADIENT_HTML, tmp_path)
+    bg = [e for e in spec["elements"] if e["type"] == "image" and "BG-Gradient" in e.get("name", "")]
+    assert bg, "body's own gradient background must render as a full-frame BG-Gradient PNG"
+
+
+# A radial-gradient "glow" whose outer stop fades to fully transparent: the whole
+# visual IS the soft alpha falloff. Approximating it to an opaque solid produces a
+# hard-edged filled ellipse (the glow's defining softness is destroyed), so it must
+# stay RASTER. (Contrast the linear transparent-edge case below, which stays native.)
+RADIAL_GLOW_HTML = """<!doctype html><html><head><style>
+  body { margin:0; width:800px; height:600px; background:#0a0a1a; position:relative; }
+  .glow { position:absolute; top:60px; left:60px; width:300px; height:300px;
+          border-radius:50%;
+          background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%); }
+</style></head><body><div class="glow"></div></body></html>"""
+
+
+def test_radial_glow_fading_to_transparent_rasters(tmp_path):
+    spec = run_extract(RADIAL_GLOW_HTML, tmp_path)
+    imgs = [e for e in spec["elements"] if e["type"] == "image"]
+    assert imgs, "a radial glow fading to transparent must raster (keep the soft falloff)"
+    solids = [e for e in spec["elements"] if e["type"] in ("ellipse", "rectangle")]
+    assert not solids, "the glow must NOT become a hard-edged solid ellipse/rect"
+
+
+# A LINEAR gradient with transparent EDGES (e.g. a fading underline/bar): the middle
+# is opaque, so a solid approximation is acceptable — this must STAY NATIVE, proving
+# Fix D is scoped to radial glows only and doesn't over-rasterize linear fades.
+LINEAR_FADE_BAR_HTML = """<!doctype html><html><head><style>
+  body { margin:0; width:800px; height:600px; background:#111; position:relative; }
+  .bar { position:absolute; top:100px; left:100px; width:240px; height:6px;
+         background: linear-gradient(90deg, transparent 0%, #35CC23 20%, #35CC23 80%, transparent 100%); }
+</style></head><body><div class="bar"></div></body></html>"""
+
+
+def test_linear_transparent_edge_bar_stays_native(tmp_path):
+    spec = run_extract(LINEAR_FADE_BAR_HTML, tmp_path)
+    imgs = [e for e in spec["elements"] if e["type"] == "image"]
+    assert imgs == [], "a linear transparent-edge bar must stay native (not rasterized by Fix D)"
+    solids = [e for e in spec["elements"] if e["type"] in ("rectangle", "ellipse")]
+    assert len(solids) == 1, "the bar stays a native approximated-solid shape"
+
+
 # background-clip:text gradient — same black->white blend, applied to text.
 GRADIENT_TEXT_HTML = """<!doctype html><html><head><style>
   body { margin:0; width:800px; height:300px; background:#111; }

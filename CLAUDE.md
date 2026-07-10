@@ -30,6 +30,17 @@ Pixel-perfect cho phần Figma vẽ được natively; raster PNG fallback cho p
 
 ---
 
+## Chế độ QC (bật/tắt Bước 3 — Visual Validation)
+
+**Trạng thái hiện tại: `QC_MODE: ON`**
+
+- `QC_MODE: OFF` (mặc định) → sau Bước 2 build xong, **bỏ qua toàn bộ Bước 3** (screenshot + so sánh render), báo cáo ngay theo mẫu rút gọn ở Bước 4. Dùng khi vẽ hàng loạt scene, ưu tiên tốc độ + tiết kiệm token.
+- `QC_MODE: ON` → chạy đủ Bước 3 như mô tả bên dưới trước khi báo cáo. Dùng khi muốn kiểm tra kỹ 1 scene, hoặc sau khi thấy nhiều lỗi tích tụ và muốn rà lại.
+
+**Cách bật/tắt:** user nói "bật QC" / "tắt QC" (hoặc tương đương) → sửa dòng `QC_MODE:` ở trên thành `ON`/`OFF`. Đây là công tắc DUY NHẤT quyết định Bước 3 có chạy hay không — không có cơ chế tự động nào khác (vd không tự bật khi thấy nhiều warning).
+
+---
+
 ## Pipeline — 2 bước (FILE input) hoặc 3 bước (URL input)
 
 ### Bước 0 (CHỈ KHI input là URL): URL → standalone HTML
@@ -109,9 +120,11 @@ Builder:
 
 > **Lưu ý — KHÔNG còn bước reorder BG thủ công.** Trước đây có "Bước 2.5" đưa các lớp BG xuống đáy vì builder xếp BG đè lên content. Root cause đó (effectiveZ không kế thừa stacking-context) đã được fix tận gốc → builder nay xếp đúng tầng ngay khi build (BG/glow/grid nằm dưới content; lớp `BG-Gradient` có sentinel z luôn ở đáy). Nếu sau này gặp scene bị BG đè content → **sửa tiếp `effectiveZ` (gốc), KHÔNG quay lại reorder thủ công** (vá ngọn).
 
-### Bước 3: Visual validation (CHỈ 1 lần screenshot, không loop)
+### Bước 3: Visual validation (CHỈ chạy khi `QC_MODE: ON`)
 
-Sau khi build xong (`status: "ok"`):
+> Nếu `QC_MODE: OFF` (mặc định, xem mục "Chế độ QC" ở trên) → **bỏ qua toàn bộ bước này**, đi thẳng tới Bước 4 với mẫu báo cáo rút gọn.
+
+Khi `QC_MODE: ON`, sau khi build xong (`status: "ok"`):
 
 1. Chụp screenshot **DUY NHẤT 1 LẦN**: `mcp__figma-mcp-go__get_screenshot` với `nodeIds=[<frame_id>]` để export PNG
 2. **Render HTML thật làm ảnh tham chiếu** (KHÔNG đọc source code để đoán):
@@ -135,6 +148,17 @@ Sau khi build xong (`status: "ok"`):
 
 ### Bước 4: Report final
 
+Nếu `QC_MODE: OFF` (Bước 3 đã bị bỏ qua):
+```
+Đã tạo xong:
+- Frame: <tên> (<width>×<height>px) — node id <id>
+- Native layers: X (rectangle/ellipse/text/frame)
+- Raster images: Y (SVG icons + gradient backgrounds + filter elements)
+- Warnings: <list từ report.json>
+- Validation: SKIPPED (QC_MODE: OFF — nói "bật QC" nếu muốn kiểm tra scene này)
+```
+
+Nếu `QC_MODE: ON` (đã chạy Bước 3):
 ```
 Đã tạo xong:
 - Frame: <tên> (<width>×<height>px) — node id <id>
