@@ -11,3 +11,6 @@ venv/
 .claude/
 
 .superpowers/
+
+# private drafts
+docs/posts/
