@@ -32,7 +32,7 @@ Pixel-perfect cho phần Figma vẽ được natively; raster PNG fallback cho p
 
 ## Chế độ QC (bật/tắt Bước 3 — Visual Validation)
 
-**Trạng thái hiện tại: `QC_MODE: ON`**
+**Trạng thái hiện tại: `QC_MODE: OFF`**
 
 - `QC_MODE: OFF` (mặc định) → sau Bước 2 build xong, **bỏ qua toàn bộ Bước 3** (screenshot + so sánh render), báo cáo ngay theo mẫu rút gọn ở Bước 4. Dùng khi vẽ hàng loạt scene, ưu tiên tốc độ + tiết kiệm token.
 - `QC_MODE: ON` → chạy đủ Bước 3 như mô tả bên dưới trước khi báo cáo. Dùng khi muốn kiểm tra kỹ 1 scene, hoặc sau khi thấy nhiều lỗi tích tụ và muốn rà lại.
@@ -272,3 +272,25 @@ KHÔNG re-run pipeline từ đầu nếu lỗi chỉ ở 1 vài node. Thay vào 
 1. Đọc `<scene>_report.json` để lấy frame_id + uid_to_node_id
 2. Dùng MCP tools (`move_nodes`, `resize_nodes`, `set_fills`, etc.) sửa node trực tiếp
 3. Nếu lỗi fundamental trong extraction → sửa `html_extractor.py` rồi re-run cả 2 bước (đây là fix từ gốc, ưu tiên hơn vá node)
+
+---
+
+## 6. Quy trình chống thối rữa hệ thống (AI Rot Prevention)
+
+**Bắt buộc:** Mỗi khi bắt đầu một phiên làm việc mới (session mới), AI phải tự động đọc file `rot.md` (ở thư mục gốc project) để kiểm tra lịch bảo trì.
+
+**Nếu quá hạn:**
+1. **Dừng lại ngay**, thông báo user: "[ROT WARNING] Lớp X đã quá hạn rà soát (đến hạn từ ngày Y)"
+2. **Đề xuất rà soát:**
+   - Quét mã nguồn tìm dead code, feature toggle không dùng, test obsolete
+   - Kiểm tra API/dependency có bị break (figma-mcp-go, Playwright, Python venv)
+   - Cập nhật prompt/logic nếu cần
+3. **Xin phép user trước khi xóa/sửa gì** — chỉ đề xuất + nhắc nhở, không tự động fix
+
+**Lịch cron:**
+- **Rules & Hooks**: Nhắc nhở ngày 2026-10-12 (+ hàng quý sau)
+- **Extractors & Builders**: Nhắc nhở ngày 2026-08-09 (+ hàng 4 tuần)
+- **Tests & Validation**: Nhắc nhở ngày 2026-08-09 (+ hàng 4 tuần)
+- **Agents**: Nhắc nhở khi có model Claude mới
+- **Tools/CLI**: Kiểm tra manual khi gặp lỗi API break
+- **Identity**: Nhắc nhở ngày 2027-07-12 (hàng năm)
