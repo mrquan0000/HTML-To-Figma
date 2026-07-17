@@ -1,66 +1,49 @@
 # HTML-To-Figma
 
-**Pipeline tự động chuyển HTML/URL thành Figma design — pixel-perfect, layer editable, vận hành bởi AI agent qua MCP.**
+**Công cụ cho editor / motion designer: biến scene thiết kế bằng HTML (thường do AI sinh ra) thành file Figma với layer tách rời — sẵn sàng đưa vào After Effects để dựng video.**
 
-Đưa vào 1 file HTML (hoặc URL trang web bất kỳ), nhận về 1 frame Figma với đầy đủ layer native (text, shape, effect chỉnh sửa được) + raster fallback cho phần Figma không vẽ nổi. Độ trung thực ~95%+ so với ảnh browser render thật.
+## Vấn đề nó giải quyết
 
-## Demo — HTML render thật (trái) vs Figma build tự động (phải)
+AI hiện nay sinh design cực nhanh và đẹp bằng HTML/CSS — mỗi phân cảnh (scene) của video chỉ cần một prompt là có bản thiết kế hoàn chỉnh chạy trong browser. Nhưng editor không dựng video từ HTML: muốn animate được thì cần **từng layer tách rời** (chữ riêng, icon riêng, glow riêng, nền riêng) trong Figma / After Effects. Chép tay từng element từ browser vào Figma mất hàng giờ cho mỗi scene, và rất dễ sai màu, sai vị trí, sai hiệu ứng.
+
+HTML-To-Figma tự động hóa đúng đoạn đó: đưa vào file HTML (hoặc URL), nhận về 1 frame Figma giống ảnh browser render ~95%+, mọi layer đã tách sẵn và đặt đúng chỗ.
+
+## Nó nằm ở đâu trong quy trình dựng video
+
+```mermaid
+flowchart LR
+    A[Script / ý tưởng] --> B[AI sinh scene<br/>bằng HTML/CSS]
+    B --> C[HTML-To-Figma<br/>tự động]
+    C --> D[Figma<br/>layer tách rời, editable]
+    D --> E[After Effects<br/>animate từng layer]
+    E --> F[Video]
+```
+
+Bước **B → D** trước đây là thủ công (chép từng element) — giờ là 2 lệnh, vài phút mỗi scene, chạy được hàng loạt.
+
+## Demo — browser render thật (trái) vs Figma build tự động (phải)
 
 | Browser render | Figma build |
 |---|---|
 | ![scene_9 HTML](docs/images/scene_9_html.png) | ![scene_9 Figma](docs/images/scene_9_figma.png) |
 | ![scene_12 HTML](docs/images/scene_12_html.png) | ![scene_12 Figma](docs/images/scene_12_figma.png) |
 
-*Scene trên: numeral 3D dùng 15 lớp `text-shadow` → map thành stacked native DROP_SHADOW, text vẫn editable. Scene dưới: icon SVG raster hóa từng cái cô lập, text glow giữ native.*
+## Ra Figma rồi bạn nhận được gì
 
-## Pipeline
+Mỗi tính năng bên dưới tồn tại vì một nhu cầu cụ thể khi dựng video:
 
-```mermaid
-flowchart LR
-    A[URL] -->|url_to_html.py| B[HTML standalone]
-    B0[File HTML] --> C
-    B --> C[html_extractor.py<br/>Playwright + Chromium headless]
-    C --> D[spec.json v2<br/>+ raster PNG assets]
-    D --> E[figma_builder.py<br/>JSON-RPC → figma-mcp-go]
-    E --> F[Figma frame<br/>native layers]
-    F --> G[QC: render_html.py<br/>so pixel với render thật]
-```
+- **Chữ và shape vẫn là layer native, không phải ảnh chết** — đổi nội dung text, sửa màu, chỉnh effect ngay trong Figma. Sang After Effects vẫn animate được từng chữ, từng icon.
+- **Mỗi layer chỉ chứa pixel của chính nó** — icon glow được chụp cô lập, không dính nền hay layer bên dưới. Kéo sang AE là overlay lên video và animate độc lập được ngay, không phải xóa nền.
+- **Scene có animation vẫn ra đúng khung hình đẹp nhất** — tool tự "đóng băng" mọi animation ở khoảnh khắc đỉnh của design (không phải frame đầu hay frame cuối ngẫu nhiên), nên frame Figma khớp với cái bạn thấy trong browser.
+- **Outliner sạch** — bụi/particle trang trí (hàng chục layer li ti vô nghĩa với editor) được tự lọc bỏ, khỏi phải dọn tay.
+- **Không tạo frame rác** — nếu trang chỉ là một tấm ảnh design bake sẵn (không phải HTML sống), tool dừng lại báo cho bạn kèm link ảnh gốc thay vì dựng một frame vô dụng.
+- **Có thể giao trọn cho AI agent** — repo kèm runbook để Claude Code tự chạy cả pipeline: bạn đưa file/URL, agent extract, dựng frame, tự QC bằng cách so pixel với ảnh browser render thật rồi báo cáo.
 
-1. **Extract** — render HTML trong Chromium headless, đo từng element (layout, style, z-order, animation state), phân loại native/raster, xuất `spec.json` + PNG assets.
-2. **Build** — dựng frame trên Figma desktop qua plugin [figma-mcp-go](https://github.com/xxjwxc/figma-mcp-go) (JSON-RPC/stdio), atomic rollback nếu lỗi giữa chừng.
-3. **QC** — render lại HTML thành PNG tham chiếu bằng đúng logic freeze animation của extractor, so sánh pixel với screenshot Figma.
+## Từ Figma sang video
 
-## Điểm kỹ thuật đáng nói
+Frame Figma là "bản vẽ kỹ thuật" của scene: từ đây export từng layer (hoặc đưa thẳng sang After Effects qua plugin như Overlord), giữ nguyên vị trí và kích thước tương đối. Vì mỗi layer đã cô lập sẵn pixel của nó, việc dựng chỉ còn là gắn keyframe chuyển động — phần thiết kế đã xong từ khâu HTML.
 
-Cái khó của bài toán không phải "đọc CSS rồi vẽ lại" — mà là **trung thực với những gì browser thực sự render**, kể cả các case CSS/Figma hành xử ngược nhau:
-
-- **Freeze animation tại "khoảnh khắc đỉnh"** — mỗi animation được seek tới keyframe có opacity cao nhất qua Web Animations API (không phải end-state, không phải fixed wait). Kèm fix race condition: WAAPI `pause()` là async, phải pause *trước* khi set `currentTime` nếu không kết quả trôi từng lần chạy.
-- **Z-order kế thừa CSS stacking context** — effective z-index tính theo band của ancestor tạo stacking context, không phải z-index cục bộ từng element. Không có nó, background glow đè lên content.
-- **Raster isolation** — mỗi element phức tạp được chụp *cô lập* (inject stylesheet tắt background/shadow của mọi ancestor, ẩn sibling), bbox tự nở theo ink-extent của glow/shadow (σ-based, không cắt cụt feather).
-- **Map CSS → native Figma tối đa** — `text-shadow` nhiều lớp → stacked DROP_SHADOW, `filter: blur()/drop-shadow()` → LAYER_BLUR/DROP_SHADOW, gradient đơn giản → solid approximation; chỉ raster khi thật sự bất khả (conic gradient, clip-path, SVG).
-- **Chống Figma frame-clipping** — Figma frame luôn clip children (figma-mcp-go không có API tắt), extractor có pass reparent riêng cho child tràn ra ngoài parent `overflow: visible`, kèm logic hướng z-bump khi thoát frame.
-- **Lọc nhiễu trang trí** — swarm particle/dust hàng chục layer li ti được phát hiện structural (size cluster + keyword) và drop, kèm review-log closed-loop để mở rộng từ khóa an toàn.
-
-## Vận hành bởi AI agent (Claude Code + MCP)
-
-Repo này được thiết kế để một AI agent vận hành trọn vòng đời, không chỉ code hộ:
-
-- **`CLAUDE.md` là runbook** — agent đọc và tự chạy pipeline 4 bước, có gate an toàn (vd phát hiện "ảnh thiết kế sẵn" thì dừng hỏi người dùng thay vì build vô nghĩa).
-- **QC có kỷ luật** — chuẩn "đúng" là khớp ảnh browser render thật, không suy diễn design intent từ source; phát hiện lỗi thì báo cáo và *hỏi trước khi fix*.
-- **Quy tắc fix-từ-gốc** — mọi bug đều truy root cause trong pipeline, mỗi fix kèm regression test (58 pytest tests).
-- **Chống thối rữa** — `rot.md` là lịch bảo trì định kỳ từng lớp hệ thống (extractor, tests, dependencies, memory), agent tự kiểm tra mỗi phiên làm việc.
-
-## Số liệu
-
-- **58** pytest tests (synthetic + real-scene regression)
-- **20+** scene thực tế đã build và QC bằng visual diff
-- **~95%+** fidelity với các scene HTML/CSS sống; phần native giữ nguyên khả năng edit text/shape/effect trong Figma
-
-## Tech stack
-
-Python · Playwright (Chromium headless) · figma-mcp-go (MCP, JSON-RPC) · Claude Code (agentic workflow) · pytest
-
-## Chạy thử
+## Cách dùng
 
 Yêu cầu: Python 3.11+, Figma desktop đang mở plugin **figma-mcp-go**.
 
@@ -68,17 +51,30 @@ Yêu cầu: Python 3.11+, Figma desktop đang mở plugin **figma-mcp-go**.
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/playwright install chromium
 
-# Bước 1: HTML → spec
+# Bước 1: HTML → spec (tự đo đạc mọi element trong Chromium headless)
 .venv/bin/python agents/html_extractor.py --input input/scene.html --output output/scene_spec.json
 
-# Bước 2: spec → Figma
+# Bước 2: spec → Figma (dựng frame qua figma-mcp-go)
 .venv/bin/python agents/figma_builder.py --spec output/scene_spec.json --report output/scene_report.json
 ```
 
-Từ URL trang web: chạy thêm `agents/url_to_html.py --url <URL> --output input/scene.html` trước Bước 1.
+Có URL trang web thay vì file? Chạy thêm 1 lệnh trước Bước 1:
+
+```bash
+.venv/bin/python agents/url_to_html.py --url <URL> --output input/scene.html
+```
+
+## Số liệu
+
+- **20+** scene video thực tế đã build và kiểm tra bằng visual diff với render thật
+- **~95%+** độ trung thực; phần native giữ nguyên khả năng edit trong Figma
+- **58** test tự động bảo vệ pipeline khỏi regression
 
 ## Giới hạn đã biết
 
-- Gradient fill native chưa được figma-mcp-go hỗ trợ → gradient đơn giản xấp xỉ solid (có warning), gradient phức tạp raster.
-- SVG raster hóa (không convert sang vector Figma).
-- Scene animation đa pha (multi-beat timeline) hiện freeze về 1 khoảnh khắc — hướng multi-frame-per-phase đang trong backlog.
+- Gradient phức tạp (conic, nhiều lớp) và SVG được chuyển thành ảnh PNG chất lượng cao thay vì vector editable.
+- Scene animation nhiều pha nối tiếp (kiểu "mini movie" 20-30 giây) hiện ra 1 khung hình duy nhất — hướng tách nhiều frame theo pha đang trong backlog.
+
+## Tech stack
+
+Python · Playwright (Chromium headless) · figma-mcp-go (MCP) · Claude Code (agentic workflow) · pytest
